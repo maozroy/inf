@@ -134,10 +134,94 @@ char* mystrdup(const char *src) /* duplicates existing string to new one */
 	
 }
 
+char *mystrcat(char *dest, char *src)
+{
+	size_t len_dest = 0;
+	char *ptr;
+	
+	len_dest = mystrlen(dest);
+	
+	ptr = dest+(sizeof(char)*len_dest);
+
+	while(*src)
+	{
+		*ptr = *src;
+		++ptr;
+		++src;
+		
+	}
+	*ptr = '\0';
+
+	return dest;
+}
+
+char *mystrncat(char *dest, char *src, int n)
+{
+	size_t len_dest = 0;
+	char *ptr;
+	
+	len_dest = mystrlen(dest);
+	
+	ptr = dest+(sizeof(char)*len_dest);
+
+	while(*src && n > 0)
+	{
+		*ptr = *src;
+		++ptr;
+		++src;
+		--n;
+		
+	}
+	*ptr = '\0';
+
+	return dest;
+}
+
+void testmystrncat()
+{
+	char testarray1[MAX] = "roytman ";
+	char testarray2[MAX] = "maoz";
+	char testarray3[MAX] = "roytman ";
+	char testarray4[MAX] = "maoz";
+	printf("\n\t\tstrncat testing\n");
+	if(mystrcmp(mystrncat(testarray1, testarray2,2), (strncat(testarray3, testarray4,2))) == 0)
+	{
+		printf("test susceed");
+	}
+	else
+	{
+		printf("test failed");
+	}
+
+}
+
+
+void testmystrcat()
+{
+	char testarray1[MAX] = "roytman ";
+	char testarray2[MAX] = "maoz";
+	char testarray3[MAX] = "roytman ";
+	char testarray4[MAX] = "maoz";
+	printf("\n\t\tstrcat testing\n");
+	if(mystrcmp(mystrcat(testarray1, testarray2), (strcat(testarray3, testarray4))) == 0)
+	{
+		printf("test susceed");
+	}
+	else
+	{
+		printf("test failed");
+	}
+
+}
+
+
+
+
+
 void testmystrdup()
 {
 	char testarray1[MAX] = "ABC";
-	char testarray3[MAX] ="";
+	char testarray3[MAX] =" ";
 	char testarray5[MAX] ="k0s0m0";
 	char *ptr =mystrdup(testarray1);
 	printf("\n\t\tmystrdup testing\n");
@@ -214,7 +298,7 @@ void testmystrchr()
 	char test1 = ' ';
 	char test2 = 'M';
 	char test3 = '0';
-	printf("\n\t\ttest mysrtchr testing\n");
+	printf("\n\t\tsrtchr testing\n");
 
 	if (strchr(testarray1, test1) == mystrchr(testarray1, test1))
 	{
@@ -408,8 +492,8 @@ int main()
 	testmystrcasecmp();
 	testmystrchr();
 	testmystrdup();
-	
-
+	testmystrcat();
+	testmystrncat();
 
 	return 0;
 }
