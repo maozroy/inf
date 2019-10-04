@@ -6,6 +6,43 @@
 #include <stdlib.h>
 #define MAX 4096
 
+size_t mystrlen(char *src);
+int mystrcmp(const char *str1, const char *str2);
+int mystrcasecmp(const char *str1, const char *str2);
+char *mystrcpy(char *dest,const char *src); /*crop entire string to another string*/
+char *mystrncpy(char *dest, char *src, size_t n);
+char* mystrchr( char *src, char c);
+char* mystrdup(const char *src); /* duplicates existing string to new one */
+char *mystrcat(char *dest, char *src);
+char *mystrncat(char *dest, char *src, int n);
+void testmystrncat();
+void testmystrcat();
+void testmystrdup();
+void testmystrlen();
+void testmystrchr();
+void testmystrcmp();
+void testmystrcasecmp();
+void testmystrcpy();
+void testmystrncpy();
+
+int main()
+{
+
+
+
+	testmystrlen();
+	testmystrcmp();
+	testmystrcpy();
+	testmystrcasecmp();
+	testmystrchr();
+	testmystrdup();
+	testmystrcat();
+	testmystrncat();
+	testmystrncpy();
+
+	return 0;
+}
+
 
 size_t mystrlen(char *src) /*defining func that recieved ptr to char array and returnes size_t*/
 {
@@ -122,6 +159,10 @@ char* mystrdup(const char *src) /* duplicates existing string to new one */
 		len++;
 	}
 	str = malloc(len+1);
+	if(NULL == str)
+		{
+		return ("Memory allocation failed");
+		}
 	p = str;
 	while (*src)
 	{
@@ -481,19 +522,4 @@ void testmystrncpy()
 }
 
 
-int main()
-{
 
-
-
-	testmystrlen();
-	testmystrcmp();
-	testmystrcpy();
-	testmystrcasecmp();
-	testmystrchr();
-	testmystrdup();
-	testmystrcat();
-	testmystrncat();
-
-	return 0;
-}
