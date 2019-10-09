@@ -20,6 +20,7 @@ float fl = 0;
 long lo_fl = 0;
 double do_fl = 0;
 long double lo_do_fl = 0;
+int * ptr = NULL;
 
 
 
@@ -45,6 +46,8 @@ printf("size of float              = %lu bytes\n", sizeof(fl));
 printf("size of long float         = %lu bytes\n", sizeof(lo_fl));
 printf("size of double float       = %lu bytes\n", sizeof(do_fl));
 printf("size of long double float  = %lu bytes\n", sizeof(lo_do_fl));
+puts("\n\t\tPOINTER");
+printf("size of pointer            = %lu bytes\n", sizeof(ptr));
 
 
 return 0;
