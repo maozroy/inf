@@ -9,6 +9,7 @@
 #include <string.h> /*for strcpy*/
 #include <stdlib.h> /*for calloc, free*/
 #include <ctype.h>  /*for tolower*/
+#include <assert.h>  /*for assert*/
 
 void FreeBack(char **ptr);             /*memory freeing of ** */
 void PrintArray(char **arr);           /*printing strings within ** */
@@ -68,9 +69,8 @@ void PrintArray(char **arr)
 	while(*arr_start)
 	{
 		printf("%s \n", *arr_start);
-		arr_start++;
+		++arr_start;
 	}
-	arr = arr_start;
 }
 
 void CopyArray(char **arr)
@@ -82,39 +82,42 @@ void CopyArray(char **arr)
 	
 	char **arr_start = arr;
 	char **allocated_arr = NULL;
-	char **allocated_arr_start;
+	char **allocated_arr_start = NULL;
+	
+	assert(arr);
 	
 	while(*arr)
 	{
-		arr_index++;	
-		arr++;
+		++arr_index;	
+		++arr;
 	}
 	arr = arr_start;
 	
 	allocated_arr = calloc(arr_index+1,(sizeof(char*)));
+	if(NULL == allocated_arr) 
+		{	
+			return;
+		}
 	allocated_arr_start = allocated_arr;
 
 		while (*arr)
 		{
 			string_len = strlen(*arr);
 			*allocated_arr = MyCalloc(string_len, Nuller);
-			++Nuller;
-			
-			/*Nuller limit will Nullify pointer, thus causing memory allocation to "fail" */
-			if(*allocated_arr == NULL) 
+			if(NULL == *allocated_arr) 
 			{	
 				FreeBack(allocated_arr_start); 
 				return;
 			}
-			strcpy(*allocated_arr, *arr); 
+			++Nuller;
+			/*Nuller limit will Nullify pointer, thus causing memory allocation to "fail" */
 			
 			for (i = 0 ; i < (string_len+1) ; i++)
 			{
-				*(*allocated_arr+i) = tolower(*(*allocated_arr+i));
+				*(*allocated_arr+i) = tolower(*(*arr+i));
 			}
-			
-			allocated_arr++;
-			arr++;
+			++allocated_arr;
+			++arr;
 		}
 	arr = arr_start;
 	
@@ -124,16 +127,13 @@ void CopyArray(char **arr)
 
 void FreeBack(char **ptr)
 {
-	char **ptr_start;
-	
-	ptr_start = ptr;
+	char **ptr_start = ptr;
 	
 	while(*ptr)
 	{
 		free(*ptr);
-		ptr++;
+		++ptr;
 	}
-
 	ptr = ptr_start;
 	free(ptr);
 		
@@ -144,7 +144,7 @@ char *MyCalloc(int size, int nuller)
 {
 	if (nuller < 100)
 	{
-		return calloc(size+1,(sizeof(char)));
+		return malloc((sizeof(char)) * (size+1));
 	}
 	else
 	{
