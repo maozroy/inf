@@ -1,7 +1,13 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
+/*********************************/
+/*           worksheet2          */
+/* Author: Maoz Roytman          */
+/* Reviwer: Yonatan Vologdin     */
+/* Date 06/10/19                 */
+/*********************************/
+
+#include <stdlib.h> /*for mallocs */
+#include <stdio.h> /*for prints */
+#include <string.h> /*for strlen */
 
 int is_palindrome (char *str);
 int containdigit(int num);
@@ -33,6 +39,7 @@ int main()
 void adding(char* num1, char* num2)
 {
 	char* result;
+	char* free_the_pointer = NULL	;
 	int len1 = strlen(num1);
 	int len2 = strlen(num2);
 	int i = 0;
@@ -41,6 +48,11 @@ void adding(char* num1, char* num2)
 	int max = 0;
 	
 	result = malloc( sizeof(char*) * ((len1 > len2) ? len1 : len2) + 2);
+	if(NULL == result)
+	{
+		return;
+	}
+	free_the_pointer = result;
 	max = (len1 > len2) ? len1 : len2; 
 	reverse(num1);
 	reverse(num2);
@@ -78,6 +90,7 @@ void adding(char* num1, char* num2)
 		result--;
 		i++;
 	}
+	free(free_the_pointer);
 	
 }
 
