@@ -4,80 +4,68 @@
 
 void IfElse(char ch);
 void SwitchCase(char ch);
-void LUT(char ch);
+void LUT();
 void esc();
 void akey();
 void tkey();
 void Empty();
-void (*lut_arr[256])(void) =  {0,0,0,0,0,0,0,0,0,0,			/*0-9*/
-				  			  0,0,0,0,0,0,0,0,0,0,			/*10-19*/
-			  		  		  0,0,0,0,0,0,0,esc,0,0,	/*20-29*/
-							  0,0,0,0,0,0,0,0,0,0,			/*30-39*/
-							  0,0,0,0,0,0,0,0,0,0,			/*40-49*/
-							  0,0,0,0,0,0,0,0,0,0,			/*50-59*/
-							  0,0,0,0,0,akey,0,0,0,0, 	/*60-69*/	
-							  0,0,0,0,0,0,0,0,0,0,			/*70-79*/
-							  0,0,0,0,tkey,0,0,0,0,0,  	/*80-89*/
-							  0,0,0,0,0,0,0,0,0,0,		/*90-99*/
-							  0,0,0,0,0,0,0,0,0,0,			/*100-109*/
-							  0,0,0,0,0,0,0,0,0,0,		/*110-119*/
-							  0,0,0,0,0,0,0,0,0,0,			/*120-129*/
-							  0,0,0,0,0,0,0,0,0,0,			/*130-139*/
-							  0,0,0,0,0,0,0,0,0,0,			/*140-149*/
-							  0,0,0,0,0,0,0,0,0,0,			/*150-159*/
-							  0,0,0,0,0,0,0,0,0,0,			/*160-169*/
-							  0,0,0,0,0,0,0,0,0,0,			/*170-179*/
-							  0,0,0,0,0,0,0,0,0,0,			/*180-189*/
-							  0,0,0,0,0,0,0,0,0,0,			/*190-199*/
-							  0,0,0,0,0,0,0,0,0,0,			/*200-209*/
-							  0,0,0,0,0,0,0,0,0,0,           /*210-219*/
-							  0,0,0,0,0,0,0,0,0,0,           /*220-229*/
-							  0,0,0,0,0,0,0,0,0,0,           /*230-239*/
-							  0,0,0,0,0,0,0,0,0,0,           /*240-249*/
-							  0,0,0,0,0,0 };                   /*250-255*/
+void (*lut_arr[256])(void) =  	{Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*0-9*/
+	  			 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*10-19*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, esc,Empty, Empty, 		/*20-29*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*30-39*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*40-49*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*50-59*/
+				 Empty, Empty, Empty, Empty, Empty, akey,Empty, Empty, Empty, Empty,  	/*60-69*/	
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*70-79*/
+				 Empty, Empty, Empty, Empty, tkey,Empty, Empty, Empty, Empty, Empty,   	/*80-89*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*90-99*/
+			 	 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*100-109*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*110-119*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*120-129*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*130-139*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*140-149*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*150-159*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*160-169*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*170-179*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*180-189*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*190-199*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, 		/*200-209*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,             /*210-219*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,             /*220-229*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,             /*230-239*/
+				 Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,             /*240-249*/
+				 Empty, Empty, Empty, Empty, Empty, 0};                  /*250-255*/
 							  			
-
+/*only activate one function at a time */
 int main ()
 {
-int input = 0;
-
-system("stty -icanon -echo");
-
-input = getchar();
-/*SwitchCase(input);*/
-LUT(input);
-
+	char input = 0;
+	system("stty -icanon -echo");
+	input = getchar();
+	/*SwitchCase(input);*/
+	IfElse(input);
+	/*LUT();*/
 
 
-system("stty icanon echo");
-return 0;
+
+	system("stty icanon echo");
+	return 0;
 }
 
 void Empty()
 {
-printf("...");
+	printf("...");
+	return;
 }
 
-void LUT(char ch)
+void LUT()
 {
-	int i = 0;
-	void (*lut_arr[256]) ();
-
-	
-	while (i < 256)
-	{
-		lut_arr[i] = NULL;
-		++i;
-	}
-	
-	lut_arr[27] = esc;
-	lut_arr[65] = akey;
-	lut_arr[84] = tkey;
+	int ch = 0;
 	
 	while(1)
 	{
 		ch = getchar();
-		lut_arr[(unsigned int)ch]();
+		(*lut_arr[(int) ch])();
 	}
 }
 
@@ -90,32 +78,38 @@ void esc()
 void tkey()
 {
 	printf("T Pressed\n");
+	return;
 }
 
 void akey()
 {
 	printf("A Pressed\n");
+	return;
 }
 
 
 void IfElse(char ch)
 {
+	system("stty -icanon -echo");
 	while(1)
 	{
+		ch = getchar();
 		if(ch == 'A')
 		{
 			printf("%c Pressed\n", ch);
-			ch = getchar();
 		}
 		if(ch == 'T')
 		{
 			printf("%c Pressed\n", ch);
-			ch = getchar();
 		}
 		if(ch == 27)
 		{
 			system("stty icanon echo");
 			return;
+		}
+		else
+		{
+			Empty();
 		}
 	}
 }
@@ -137,6 +131,8 @@ void SwitchCase(char ch)
 			case 27:
 				system("stty icanon echo");
 				return;
+			default:
+				Empty();
 		}
 	}
 }
