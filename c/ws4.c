@@ -1,118 +1,95 @@
-#include <stdio.h>
-#include <stdlib.h>
+/**************************/
+/*          WS4           */
+/* Author: Maoz Roytman   */
+/* Reviwer: Sharon Rottner*/
+/*        12/10/19        */
+/**************************/
 
+#include <stdio.h> /* for prints */
+#include <stdlib.h> /* for exit */
 
 void IfElse(char ch);
 void SwitchCase(char ch);
-void LUT(char ch);
-void esc();
-void akey();
-void tkey();
+void LUT();
+void Esc();
+void Akey();
+void Tkey();
 void Empty();
-void (*lut_arr[256])(void) =  {0,0,0,0,0,0,0,0,0,0,			/*0-9*/
-				  			  0,0,0,0,0,0,0,0,0,0,			/*10-19*/
-			  		  		  0,0,0,0,0,0,0,esc,0,0,	/*20-29*/
-							  0,0,0,0,0,0,0,0,0,0,			/*30-39*/
-							  0,0,0,0,0,0,0,0,0,0,			/*40-49*/
-							  0,0,0,0,0,0,0,0,0,0,			/*50-59*/
-							  0,0,0,0,0,akey,0,0,0,0, 	/*60-69*/	
-							  0,0,0,0,0,0,0,0,0,0,			/*70-79*/
-							  0,0,0,0,tkey,0,0,0,0,0,  	/*80-89*/
-							  0,0,0,0,0,0,0,0,0,0,		/*90-99*/
-							  0,0,0,0,0,0,0,0,0,0,			/*100-109*/
-							  0,0,0,0,0,0,0,0,0,0,		/*110-119*/
-							  0,0,0,0,0,0,0,0,0,0,			/*120-129*/
-							  0,0,0,0,0,0,0,0,0,0,			/*130-139*/
-							  0,0,0,0,0,0,0,0,0,0,			/*140-149*/
-							  0,0,0,0,0,0,0,0,0,0,			/*150-159*/
-							  0,0,0,0,0,0,0,0,0,0,			/*160-169*/
-							  0,0,0,0,0,0,0,0,0,0,			/*170-179*/
-							  0,0,0,0,0,0,0,0,0,0,			/*180-189*/
-							  0,0,0,0,0,0,0,0,0,0,			/*190-199*/
-							  0,0,0,0,0,0,0,0,0,0,			/*200-209*/
-							  0,0,0,0,0,0,0,0,0,0,           /*210-219*/
-							  0,0,0,0,0,0,0,0,0,0,           /*220-229*/
-							  0,0,0,0,0,0,0,0,0,0,           /*230-239*/
-							  0,0,0,0,0,0,0,0,0,0,           /*240-249*/
-							  0,0,0,0,0,0 };                   /*250-255*/
+#define FIVE_EMPTY Empty, Empty, Empty, Empty, Empty
+#define TEN_EMPTY FIVE_EMPTY, FIVE_EMPTY
+#define HUNDRED_EMPTY TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, \
+	TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY
 							  			
-
+/*only activate one function at a time */
 int main ()
 {
-int input = 0;
+	char input = '\0';
 
-system("stty -icanon -echo");
-
-input = getchar();
-/*SwitchCase(input);*/
-LUT(input);
-
-
-
-system("stty icanon echo");
-return 0;
+	system("stty -icanon -echo");
+	input = getchar();
+	SwitchCase(input);
+	/*IfElse(input);*/
+	/*LUT();*/
+	system("stty icanon echo");
+	return 0;
 }
 
 void Empty()
 {
-printf("...");
+	printf("...");
+	return;
 }
 
-void LUT(char ch)
+void LUT()
 {
-	int i = 0;
-	void (*lut_arr[256]) ();
-
-	
-	while (i < 256)
-	{
-		lut_arr[i] = NULL;
-		++i;
-	}
-	
-	lut_arr[27] = esc;
-	lut_arr[65] = akey;
-	lut_arr[84] = tkey;
+	static void (*lut_arr[256])() = {TEN_EMPTY, TEN_EMPTY, FIVE_EMPTY, Empty, 
+		Empty, Esc, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, FIVE_EMPTY, Empty, 
+		Empty, Akey, TEN_EMPTY, FIVE_EMPTY, Empty, Empty, Empty, Tkey,
+ 		HUNDRED_EMPTY, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, TEN_EMPTY, 
+		TEN_EMPTY, TEN_EMPTY, Empty};
+	char ch = '\0';
 	
 	while(1)
 	{
 		ch = getchar();
-		lut_arr[(unsigned int)ch]();
+		(*lut_arr[(unsigned int) ch])();
 	}
 }
 
-void esc()
+void Esc()
 {
 	system("stty icanon echo");
 	exit(0);
 }
 
-void tkey()
+void Tkey()
 {
 	printf("T Pressed\n");
+	return;
 }
 
-void akey()
+void Akey()
 {
 	printf("A Pressed\n");
+	return;
 }
 
 
 void IfElse(char ch)
 {
+	system("stty -icanon -echo");
 	while(1)
 	{
-		if(ch == 'A')
+		ch = getchar();
+		if('A' == ch)
 		{
 			printf("%c Pressed\n", ch);
-			ch = getchar();
 		}
-		if(ch == 'T')
+		if('T' == ch)
 		{
 			printf("%c Pressed\n", ch);
-			ch = getchar();
 		}
-		if(ch == 27)
+		if(27 == ch)
 		{
 			system("stty icanon echo");
 			return;
@@ -136,7 +113,10 @@ void SwitchCase(char ch)
 				break;
 			case 27:
 				system("stty icanon echo");
-				return;
+				exit(0);
+			default:
+				Empty();
+				break;
 		}
 	}
 }
