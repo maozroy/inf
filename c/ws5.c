@@ -79,6 +79,7 @@ int op_count(char *str ,char *file)
 	char c = 0;
 	char counter = 0;
 	FILE *input;
+	*str = 0;
 	input = fopen(file, "r");
 	for(c = getc(input) ; c!= EOF ; c = getc(input))
 	{
@@ -87,18 +88,19 @@ int op_count(char *str ,char *file)
 			++counter;
 		}
 	}
-	printf("file has %d lines", counter);
+	printf("file has %d lines\n", counter);
 	fclose(input);
 	return 0;
 }
 
 int op_begin(char *str ,char *file)
 {
-
 	FILE *input;
-		printf("this is op op_begin\n");
-	input = fopen(file, "a+");
-	fseek(input, 0, SEEK_SET);
-	fputs(str++, input);
+	str++;
+	printf("this is op op_begin\n");
+	input = fopen(file, "r+");
+	fseek(input, 0L, SEEK_SET);
+	fputs(str, input);
+	fclose(input);
 	return 0;
 }
