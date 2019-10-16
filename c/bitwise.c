@@ -1,3 +1,10 @@
+/************************/
+/*          WS6         */
+/* Author: Maoz Roytman */
+/* Reviwer: Eyal R.     */
+/*        15/10/19      */
+/************************/
+
 #include <stdio.h> /*for prints*/
 
 long Pow2 (unsigned int x, unsigned int y);
@@ -37,6 +44,7 @@ void Test_CountWithLoop();
 int main ()
 {
 	float fl = 8.2;
+	
 	printFloat(fl);
 	Test_Pow2();
 	Test_IsPower2();
@@ -326,16 +334,15 @@ void Test_ThreeBitsOn()
 	
 	printf("\n\t\t---Test ThreeBitsOn---");
 	ThreeBitsOn(arr, 4);
-
 }
 
-int CountBits(unsigned int x)
+int CountBits (unsigned int x)
 {
-unsigned int m1  = 1431655765; /*binary: 0101...*/
-unsigned int m2  = 858993459; /*binary: 00110011..*/
-unsigned int m4  = 252645135; /*binary:  4 zeros,  4 ones ...*/
-unsigned int m8  = 16711935; /*binary:  8 zeros,  8 ones ...*/
-unsigned int m16 = 65535; /*binary: 16 zeros, 16 ones ...*/
+	unsigned int m1  = 1431655765; /*binary: 0101...*/
+	unsigned int m2  = 858993459; /*binary: 00110011..*/
+	unsigned int m4  = 252645135; /*binary:  4 zeros,  4 ones ...*/
+	unsigned int m8  = 16711935; /*binary:  8 zeros,  8 ones ...*/
+	unsigned int m16 = 65535; /*binary: 16 zeros, 16 ones ...*/
 
     x = (x & m1 ) + ((x >>  1) & m1 ); 
     x = (x & m2 ) + ((x >>  2) & m2 ); 
@@ -345,7 +352,7 @@ unsigned int m16 = 65535; /*binary: 16 zeros, 16 ones ...*/
     return x;
 }
 
-void printFloat(float num)
+void printFloat (float num)
 {
 	unsigned int *temp = (unsigned int*) &num;
 	
@@ -353,20 +360,20 @@ void printFloat(float num)
 	PrintInt(*temp);
 }
 
-void PrintInt(unsigned int num)
+void PrintInt (unsigned int num)
 {
-	int i = sizeof(int)*8-1;
+	int i = (sizeof(int)*8)-1;
 	
 	printf("\nPrint int is called\n");
 	printf("%d:",num);
-	while (i >= 0)
+	while (0 <= i)
 	{
 		printf("%d",CheckByte(num, i));
 		--i;
 	}
 }
 
-long Pow2(unsigned int x, unsigned int y)
+long Pow2 (unsigned int x, unsigned int y)
 {
 	return x << y;
 }
@@ -384,7 +391,7 @@ int IsPower2 (unsigned int n)
 		}
 		--size;
 	}
-	if (counter > 1)
+	if (1 < counter)
 	{
 		return 0;
 	}
@@ -397,7 +404,6 @@ int IsPower2NoLoop (unsigned int n)
 {
 	return n && (!((n-1)&n));
 }
-
 
 int AddOne (unsigned int n)
 {
@@ -420,7 +426,6 @@ void ThreeBitsOn (unsigned int *arr, int size_of_arr)
 	while (size_of_arr > 0)
 	{
 		one = 1;
-
 		for(i = 0 ; i < sizeof(arr); i++)
 		{
 			if (one & *arr)
@@ -448,15 +453,12 @@ void ThreeBitsOn (unsigned int *arr, int size_of_arr)
 	return;
 }
 
-
-
-
-unsigned char ByteMirror(unsigned char num)
+unsigned char ByteMirror (unsigned char num)
 {
 	unsigned int i = 0;
 	unsigned char tmp = 0;
 		      
-	for(; i < ((sizeof(char)*8 - 1)); i++)
+	for(; i < (((sizeof(char)*8) - 1)); i++)
 	{	      
 		tmp = tmp | (num & 1);        
 		num = num >> 1; 
@@ -465,7 +467,7 @@ unsigned char ByteMirror(unsigned char num)
 	return tmp;
 }
 
-unsigned char ByteMirrorNoLoop(unsigned char num)
+unsigned char ByteMirrorNoLoop (unsigned char num)
 {
 	unsigned char maskA1 = 85; /*01010101*/
 	unsigned char maskA2 = 170; /*10101010*/
@@ -497,7 +499,7 @@ unsigned char ByteMirrorNoLoop(unsigned char num)
 	return num;
 }
 
-int TwoAndSixBothOn(unsigned int num)
+int TwoAndSixBothOn (unsigned int num)
 {
 	unsigned int bit_two = num;
 	unsigned int bit_six = num;
@@ -509,7 +511,7 @@ int TwoAndSixBothOn(unsigned int num)
 	return (bit_six & bit_two);
 }
 
-int TwoAndSixOneOn(unsigned int num)
+int TwoAndSixOneOn (unsigned int num)
 {
 	unsigned int bit_two = num;
 	unsigned int bit_six = num;
@@ -521,14 +523,13 @@ int TwoAndSixOneOn(unsigned int num)
 	return (bit_six | bit_two);
 }
 
-
-unsigned int CheckByte(unsigned int num, int loc)
+unsigned int CheckByte (unsigned int num, int loc)
 {
 	num >>=loc;
 	return (1&num); 
 }
 
-int SwapThreeFiveBits(unsigned int num)
+int SwapThreeFiveBits (unsigned int num)
 {
 	unsigned int bit_three = CheckByte(num, 2);
 	unsigned int bit_five = CheckByte(num, 4);
@@ -542,7 +543,7 @@ int SwapThreeFiveBits(unsigned int num)
 	return (num);
 }
 
-unsigned int ClosestSmallerNum(unsigned int num)
+unsigned int ClosestSmallerNum (unsigned int num)
 {
 	num>>=4;
 	num<<=4;
@@ -556,7 +557,7 @@ void SwapInt(int *a, int *b)
 	*a ^= *b;
 }
 
-unsigned int CountWithLoop(unsigned int num)
+unsigned int CountWithLoop (unsigned int num)
 {
 	unsigned int i = 0;
 	unsigned int counter = 0;
