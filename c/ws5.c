@@ -8,20 +8,30 @@
 #include <stdio.h>  /*FILE, EOF, prints, getc*/
 #include <string.h> /*strlen*/
 #include <stdlib.h> /*exit*/
-
-int op_remove(char *str ,char *file); /*removes the file*/
-int op_count(char *str ,char *file);  /*counts amount of lines in file*/
-int op_exit();					      /*exits the program*/
-int op_begin(char *str ,char *file);  /*writes to beginning of file*/
-int op_write(char *str ,char *file);  /*writes to file*/
-int comparing(); 					  /*compares input to string commands*/
+enum output {working = 0,
+			file_not_found = 1,
+			file_not_closed = 2,
+			file_not_opened = 3,
+			file_not_removed = 4
+			}status;
 
 struct func_t
 {
 	char *op;			
-	int (*op_func)();
+	enum output (*op_func)();
 	int (*comparing)(char* str, char *function);
 };
+
+enum output op_remove(char *str ,char *file); /*removes the file*/
+enum output op_count(char *str ,char *src_file);  /*counts amount of lines in file*/
+enum output op_exit();					      /*exits the program*/
+enum output op_begin(char *str ,char *file);  /*writes to beginning of file*/
+enum output op_write(char *str ,char *file);  /*writes to file*/
+int blank_comparing (char* str, char *function);
+int comparing(); 					  /*compares input to string commands*/
+int begin_comparing (char* str, char *function);
+
+
 
 /*when running the a.out, a declaration for a .txt file to output is needed.
 Maximum of 256 chars per line*/
@@ -29,13 +39,15 @@ Maximum of 256 chars per line*/
 int main (int argc, char *argv[])
 {
 
+
 	struct func_t box[5] = {{"-remove", op_remove, comparing}, 
 							{"-count", op_count, comparing}, 
 							{"-exit", op_exit, comparing},
-							{"<", op_begin, comparing},
-							{"", op_write, comparing}};
+							{"<", op_begin, begin_comparing},
+							{"", op_write, blank_comparing}};
 	char input[256];
 	int i = 0;
+	int result = 0;
 
 	while(1)
 	{
@@ -44,7 +56,12 @@ int main (int argc, char *argv[])
 		{
 			if ((box[i].comparing (input, box[i].op))==0)
 			{
-				box[i].op_func(input, *(argv+1));
+				result = box[i].op_func(input, *(argv+1));
+				if(result)
+				{
+					printf("\nError Code is %d\n",result);
+				}
+				break;
 			}
 
 		++i;
@@ -56,39 +73,56 @@ int main (int argc, char *argv[])
 
 int comparing (char* str, char *function)
 {
+	return strncmp(function, str, strlen(function)-1);
+}
+
+int begin_comparing (char* str, char *function)
+{
 	return strncmp(function, str, strlen(function));
 }
 
-int op_write (char *str ,char *file)
+int blank_comparing (char* str, char *function)
 {
+	return 0;
+}
+
+enum output op_write (char *str ,char *file)
+{
+	int status = 0;
 	FILE *input;
-	
+	printf("input for write function is %s\n", str);
 	input = fopen(file, "a+");
 	fputs(str, input);
-	fclose(input);
-	return 0;
+	status = (fclose(input) == 0) ? working : file_not_closed ;
+	return (status);
 }
 
-int op_remove (char *str ,char *file)
+enum output op_remove (char *str ,char *file)
 {
-	remove(file);
-	return 0;
+	int status = 0;
+	printf("this is remove function");
+	status = (remove(file)==0) ? working : file_not_removed ;
+	return (status);
 }
 
-int op_exit ()
+enum output op_exit ()
 {
 	exit(0);
 	return 0;
 }
 
-int op_count (char *str ,char *file)
+enum output op_count (char *str ,char *file)
 {
 	char c = 0;
 	char counter = 0;
-	FILE *input;
-	
+	int status = 0;
+	FILE *input = fopen(file, "r");;
+
 	*str = 0;
-	input = fopen(file, "r");
+	if (input == NULL)
+		{
+			return file_not_opened;
+		}
 	for (c = getc(input) ; c!= EOF ; c = getc(input))
 	{
 		if (c == '\n')
@@ -97,18 +131,35 @@ int op_count (char *str ,char *file)
 		}
 	}
 	printf("file has %d lines\n", counter);
-	fclose(input);
-	return 0;
+	status = (fclose(input) == 0) ? working : file_not_closed ;
+	return (status);
 }
 
-int op_begin (char *str ,char *file)
+enum output op_begin (char *str ,char *src_file)
 {
+
 	FILE *input;
+	FILE *temp_f;
+	char ch;
 	
-	str++;
-	input = fopen(file, "r+");
-	fseek(input, 0L, SEEK_SET);
-	fputs(str, input);
+	printf("input for begin function is %s\n", str);
+	temp_f = fopen("dummy.txt", "w+");
+	input = fopen(src_file, "r");
+	
+	if (input == NULL)
+	{
+		printf("CHECK");
+		return file_not_opened;
+	}
+	fputs((str+1), temp_f);
+	
+	while((ch = (fgetc(input))) != EOF)
+	{
+		printf("looping\n");
+		fputc(ch, temp_f);
+	}
+	rename("dummy.txt", src_file);
 	fclose(input);
+	fclose(temp_f);
 	return 0;
 }
