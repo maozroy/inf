@@ -142,7 +142,6 @@ enum output op_begin (char *str ,char *src_file)
 	FILE *temp_f;
 	char ch;
 	
-	printf("input for begin function is %s\n", str);
 	temp_f = fopen("dummy.txt", "w+");
 	input = fopen(src_file, "r");
 	
@@ -155,7 +154,6 @@ enum output op_begin (char *str ,char *src_file)
 	
 	while((ch = (fgetc(input))) != EOF)
 	{
-		printf("looping\n");
 		fputc(ch, temp_f);
 	}
 	rename("dummy.txt", src_file);
