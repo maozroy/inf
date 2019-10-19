@@ -45,7 +45,7 @@ int main (int argc, char *argv[])
 							{"-exit", op_exit, comparing},
 							{"<", op_begin, begin_comparing},
 							{"", op_write, blank_comparing}};
-	char input[MAX_INPUT];
+	char input[MAX_INPUT] = "";
 	int i = 0;
 	int result = 0;
 	
@@ -63,7 +63,7 @@ int main (int argc, char *argv[])
 		input[strlen(input)-1]='\0';
 		do
 		{
-			if ((box[i].comparing (input, box[i].op))==0)
+			if (0 == (box[i].comparing (input, box[i].op)))
 			{
 				result = box[i].op_func(input, *(argv+1));
 				if (0 != result)
@@ -76,12 +76,13 @@ int main (int argc, char *argv[])
 		} while (i < NUM_OF_OPS && ((box[i-1].comparing (input, box[i-1].op)) != 0));
 		i = 0;
 	}
+	
 	return working;
 }
 
 int comparing (char* str, char *function)
 {
-	return strncmp(function, str, strlen(str));
+	return strcmp(function, str);
 }
 
 int begin_comparing (char* str, char *function)
@@ -106,12 +107,17 @@ enum output op_write (char *str ,char *file)
 	if (!(file))
 	{
 		status = file_not_found;
+		
 		return (status);
 	}
 	input = fopen(file, "a+");
-	fputs ("\n",input);
+	if(fgetc(input) != '\n' && (fgetc(input) != EOF) )
+	{
+		fputs("\n", input);
+	}
 	fputs(str, input);
-	status = (fclose(input) == 0) ? working : file_not_closed ;
+	status = (0 == fclose(input)) ? working : file_not_closed;
+	
 	return (status);
 }
 
@@ -121,14 +127,13 @@ enum output op_remove (char *str ,char *file)
 	
 	(void)str;
 	printf("Remove File\n");
-	status = (remove(file)==0) ? working : file_not_removed ;
+	status = (remove(file)==0) ? working : file_not_removed;
 	return (status);
 }
 
 enum output op_exit ()
 {
 	exit(0);
-	return working;
 }
 
 enum output op_count (char *str ,char *file)
@@ -136,16 +141,17 @@ enum output op_count (char *str ,char *file)
 	char ch_check = 0;
 	char num_of_lines = 0;
 	int status = 0;
-	FILE *input = fopen(file, "r");;
+	FILE *input = fopen(file, "r");
 
 	(void)str;
-	if (input == NULL)
+	if (NULL == input)
 		{
+		
 			return file_not_opened;
 		}
 	for (ch_check = getc(input) ; ch_check!= EOF ; ch_check = getc(input))
 	{
-		if (ch_check == '\n')
+		if (ch_check == '\n' && )
 		{
 			++num_of_lines;
 		}
@@ -164,13 +170,15 @@ enum output op_begin (char *str ,char *src_file)
 	status = 0;
 	
 	printf("Write to Beginning of file\n");
-	temp_f = fopen("dummy.txt", "w+");
-	input = fopen(src_file, "w+");
+	temp_f = fopen("dummy.txt", "a");
+	input = fopen(src_file, "r+");
 	
-	if (input == NULL)
+	if (NULL == input)
 	{
+	
 		return file_not_opened;
 	}
+	
 	fputs((str+1), temp_f);
 	fputs ("\n",temp_f);
 	while((ch = (fgetc(input))) != EOF)
@@ -178,7 +186,8 @@ enum output op_begin (char *str ,char *src_file)
 		fputc(ch, temp_f);
 	}
 	rename("dummy.txt", src_file);
-	status = (fclose(input) == 0) ? working : file_not_closed ;
-	status = (fclose(temp_f) == 0) ? working : file_not_closed ;
+	status = (fclose(input) == 0) ? working : file_not_closed;
+	status = (fclose(temp_f) == 0) ? working : file_not_closed;
+	
 	return (status);
 }
