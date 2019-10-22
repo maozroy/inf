@@ -56,6 +56,7 @@ int main (int argc, char *argv[])
 		{
 			if ((box[i].comparing (input, box[i].op))==0)
 			{
+
 				result = box[i].op_func(input, *(argv+1));
 				if(result)
 				{
@@ -73,7 +74,11 @@ int main (int argc, char *argv[])
 
 int comparing (char* str, char *function)
 {
-	return strncmp(function, str, strlen(function)-1);
+	if(strlen(str) <= 1)
+	{
+		return(1);
+	}
+	return strncmp(function, str, strlen(str)-1);
 }
 
 int begin_comparing (char* str, char *function)
