@@ -4,10 +4,10 @@
 
 int main()
 {
-	char ptr[] = "123456789123456789";
-	char ptr2[] = "123456789123456789";
+	char ptr1[] = "0123456789ABCabc";
+	char ptr2[] = "0123456789ABCabc";
 	char c = 'z';
-	size_t n = 9;
+	size_t n = 13;
 /*
 	printf("%s",(ptr));
 	mymemset((ptr+5), c, n); 
@@ -20,10 +20,12 @@ int main()
 
 		*/
 
-	memmove(ptr+1, ptr, n);
+	memmove(ptr1+1, ptr1, n);
 	mymemmove(ptr2+1, ptr2, n);
 	printf("mymove%s\n", ptr2);
-	printf("memove%s\n", ptr);
+	printf("memove%s\n", ptr1);
+	printf("\nresult is %d",strcmp(ptr1,ptr2));
+	
 	
 	
 
