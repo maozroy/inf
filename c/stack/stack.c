@@ -1,6 +1,8 @@
-#include "stack.h"
-#include<stdlib.h>
-#include<string.h>
+#include <stdlib.h> /*malloc and free*/
+#include <assert.h> /*asserting*/
+#include "stack.h" /*header*/
+
+void CopyVoidToVoid(void *src, void *dst, size_t n);
 
 struct stack_t
 {
@@ -12,64 +14,91 @@ struct stack_t
 
 stack_t *StackCreate(size_t num_of_elements, size_t elements_size)
 {
-	void *ptr = malloc(( num_of_elements*elements_size ));
-	stack_t* stack = malloc(sizeof(stack_t));
+	stack_t * stack = malloc(sizeof(stack_t));
+	if (NULL == stack)
+	{
+		return 0;
+	}
+
+	assert(num_of_elements || elements_size);
 	
-	stack -> elements_size = elements_size;
-	stack -> head = ptr;
-	stack -> tail = (char*)(ptr)+(num_of_elements*elements_size);
-	stack -> current = ptr;
+	stack->head = malloc( num_of_elements*elements_size);
+	if (NULL == stack->head)
+	{
+		return 0;
+	}
+
+	stack->elements_size = elements_size;
+	stack->tail = (char*)(stack->head) + (num_of_elements * elements_size);
+	stack->current = stack->head;
 	
-return stack;
+	return stack;
 }
 
 void StackDestroy(stack_t *stack)
 {
-	void* stack_to_kill = (*stack).head;
-	
-	free(stack_to_kill);
+	assert(stack);
+		
+	free(stack->head);
 	free(stack);
+	
 }
 
 int StackPush(stack_t *stack, const void *n)
 {
-	char* ch_ptr_src = (char*) n;
-	char* ch_ptr_dst = (char*) stack->current;
+	
+	assert(stack);
+	assert(n);
+	
+	if (stack->current == stack->tail)
+	{
+		return 1;
+	}
+
+	CopyVoidToVoid( (char*)n ,stack->current, stack->elements_size);
+	stack->current = (char*)stack->current + stack->elements_size;
+
+	return 0;
+}
+
+void CopyVoidToVoid(void *src, void *dst, size_t n)
+{
 	size_t i = 0;
 	
+	assert(src);
+	assert(dst);
 	
-	for(i = 0; (stack->elements_size) > i ; i++)
+	for (i = 0 ; n > i ; i++)
 	{
-		*ch_ptr_dst = *ch_ptr_src;
-		++ch_ptr_dst;
-		++ch_ptr_src;
-	}				
-																																																								
-	stack->current = ch_ptr_dst;
-	
-	return 0;
-
+		*(char*) dst = *(char*) src;
+		dst = ((char*)dst) + 1;
+		src = ((char*)src) + 1;
+	}
 }
 
 void *StackPeek(const stack_t *stack)
 {
-
-return (((char*) stack->current) - stack->elements_size);
-
+	assert(stack);
+	
+	return (((char*) stack->current) - stack->elements_size);
 }
-
 
 void StackPop(stack_t *stack)
 {
+	assert(stack);
+	
 	stack->current = (((char*) stack->current) - stack->elements_size);
 }
 
 int StackIsEmpty(const stack_t *stack)
 {
-	if(stack->current ==  stack->head)
+	assert(stack);
+
+	if (stack->current ==  stack->head)
 	{
 		return 1;
-	}else
+	}
+	else
 	{
 		return 0;
 	}
@@ -77,17 +106,7 @@ int StackIsEmpty(const stack_t *stack)
 
 size_t StackSize(const stack_t *stack)
 {
-	return ((size_t)(((char*)stack->current) - ((char*)stack->head)))/stack->elements_size;
+	assert(stack);
+	
+	return ((size_t)(((char*)stack->current) - ((char*)stack->head))) / stack->elements_size;
 }
-
-
-
-
-
-
-
-
-
-
-
-
