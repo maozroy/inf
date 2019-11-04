@@ -42,6 +42,8 @@ void StackDestroy(stack_t *stack)
 	free(stack->head);
 	free(stack);
 	
+	stack->head = NULL;
+	
 }
 
 int StackPush(stack_t *stack, const void *n)

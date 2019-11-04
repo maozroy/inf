@@ -9,13 +9,11 @@
 * 		                                                                    *
 *****************************************************************************/
 #include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
+
+
 #ifndef BARR_H
 #define BARR_H
-#define BITS (sizeof(size_t) * 8)
-# define MSB (0xffffffffffffffff)
-# define LSB (1)
 typedef size_t bitarray;
 
 /*loc argument can get 0-63 as per the bitarray*/
@@ -52,8 +50,6 @@ bitarray BArrMirrorLUT(bitarray arr);
 char* BArrToString(char* buffer, bitarray arr);
 /*flips specific loc bit*/
 bitarray BArrFlip(bitarray arr, size_t loc);
-/*prints array*/
-char BArrMirror_char(unsigned char arr);
-char* BArrToString_char(char* buffer ,char arr);
+
 
 #endif
