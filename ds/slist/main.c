@@ -10,14 +10,22 @@
 #define KWHT  "\x1B[37m"
 #define RUN_TEST(TEST,NAME) \
 	(TEST) ? \
-	printf("Test"KBLU" %s"KGRN" PASS\n"KNRM, (NAME)) : \
-	printf("Test"KBLU" %s"KRED" FAIL\n"KNRM, (NAME));
+	printf("Test"KBLU"  %-50s"KGRN" PASS\n"KNRM, (NAME)) : \
+	printf("Test"KBLU"  %-50s"KRED" FAIL\n"KNRM, (NAME));
 void TestSListCreateNode();
 void TestSListInsert();
 void TestSListInsertAfter();
 void TestSListRemove();
 void TestSListCount();
-
+void TestSListFreeAll();
+void TestSListRemoveAfter();
+void TestSListFlip();
+void TestSListHasLoop();
+void TestSListForEach();
+void TestSListFind();
+void TestSListFindIntersection();
+int EnterTwoInAll(sl_node_t *node, void *param);
+int FindInNode(sl_node_t *node, void *param);
 
 int main()
 {
@@ -26,6 +34,13 @@ int main()
 	TestSListInsertAfter();
 	TestSListRemove();
 	TestSListCount();
+	TestSListFreeAll();
+	TestSListRemoveAfter();
+	TestSListFlip();
+/*	TestSListHasLoop();
+	TestSListForEach();
+	TestSListFind();
+	TestSListFindIntersection();*/
 	return 0;
 	
 }
@@ -36,21 +51,21 @@ void TestSListCreateNode()
 	int b = 2;
 	int c = 3;
 	int d = 4;
-	node_t *ptr_a = NULL;
-	node_t *ptr_b = NULL;
-	node_t *ptr_c = NULL;
-	node_t *ptr_d = NULL;
-	
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tCreate Test \n");
 	ptr_d = SListCreateNode(&d, NULL);
 	ptr_c = SListCreateNode(&c, ptr_d);
 	ptr_b = SListCreateNode(&b, ptr_c);
 	ptr_a = SListCreateNode(&a, ptr_b);
 
-	RUN_TEST((ptr_b->next) == ptr_c, "Link to next node");
+	RUN_TEST((ptr_a->next) == ptr_b, "Link to next node");
 	RUN_TEST((ptr_d->next) == NULL, "Link to next node (NULL)");
-
 	RUN_TEST(*(int*)(ptr_b->data) == b, "Value assigment");
 	RUN_TEST((ptr_d->data) == &d, "Pointer assigment");
+	SListFreeAll(ptr_a);
 }
 
 void TestSListInsert()
@@ -59,21 +74,21 @@ void TestSListInsert()
 	int b = 2;
 	int c = 3;
 	int d = 4;
-	node_t *ptr_a = NULL;
-	node_t *ptr_b = NULL;
-	node_t *ptr_c = NULL;
-	node_t *ptr_d = NULL;
-	
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tInsert Test \n");
 	ptr_d = SListCreateNode(&d, NULL);
 	ptr_c = SListCreateNode(&c, NULL);
 	ptr_b = SListCreateNode(&b, ptr_c);
 	ptr_a = SListCreateNode(&a, ptr_b);
-	printf("%d\n",*(int*)ptr_d->data);
-	printf("%d\n",*(int*)ptr_b->data);
 	SListInsert(ptr_d, ptr_b);
-	RUN_TEST(*(int*)(ptr_a->next->data) == 4, "Insert Check");
-	RUN_TEST(*(int*)(ptr_d->next->data) == 3, "Insert Check");
-	RUN_TEST(*(int*)(ptr_b->next->data) == 2, "Insert Check");
+	RUN_TEST(*(int*)(ptr_a->next->data) == 4, "pos points to next");
+	RUN_TEST(*(int*)(ptr_d->next->data) == 3, "new points to old->next");
+	RUN_TEST(*(int*)(ptr_b->next->data) == 2, "pos->next points to b");
+	SListFreeAll(ptr_a);
+
 }
 
 void TestSListInsertAfter()
@@ -82,19 +97,20 @@ void TestSListInsertAfter()
 	int b = 2;
 	int c = 3;
 	int d = 4;
-	node_t *ptr_a = NULL;
-	node_t *ptr_b = NULL;
-	node_t *ptr_c = NULL;
-	node_t *ptr_d = NULL;
-	
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tInsertAfter Test \n");
 	ptr_d = SListCreateNode(&d, NULL);
 	ptr_c = SListCreateNode(&c, NULL);
 	ptr_b = SListCreateNode(&b, ptr_c);
 	ptr_a = SListCreateNode(&a, ptr_b);
 	SListInsertAfter(ptr_d, ptr_b);
-	RUN_TEST(*(int*)(ptr_a->next->data) == 2, "InsertAfter Check");
-	RUN_TEST(*(int*)(ptr_d->next->data) == 3, "InsertAfter Check");
-	RUN_TEST(*(int*)(ptr_b->next->data) == 4, "InsertAfter Check");
+	RUN_TEST(*(int*)(ptr_a->next->data) == 2, "pos-1 before points to new");
+	RUN_TEST(*(int*)(ptr_d->next->data) == 3, "new points to pos->next");
+	RUN_TEST(*(int*)(ptr_b->next->data) == 4, "new->next points to pos");
+	SListFreeAll(ptr_a);
 }
 
 void TestSListRemove()
@@ -103,21 +119,47 @@ void TestSListRemove()
 	int b = 2;
 	int c = 3;
 	int d = 4;
-	node_t *ptr_a = NULL;
-	node_t *ptr_b = NULL;
-	node_t *ptr_c = NULL;
-	node_t *ptr_d = NULL;
-	
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tRemove Test \n");
 	ptr_d = SListCreateNode(&d, NULL);
-	ptr_c = SListCreateNode(&c, NULL);
+	ptr_c = SListCreateNode(&c, ptr_d);
 	ptr_b = SListCreateNode(&b, ptr_c);
 	ptr_a = SListCreateNode(&a, ptr_b);
 	
-	SListRemove(ptr_b);
-	RUN_TEST(*(int*)(ptr_a->next->data) == 3, "Remove Check");
-	RUN_TEST(ptr_c->data == NULL, "Remove Check");
-	SListRemove(ptr_d);
-	RUN_TEST(ptr_c->next->data == NULL, "Remove Check");
+	SListRemove(ptr_a);
+	RUN_TEST((ptr_a->next) == ptr_c, "node->next points to next->next");
+	SListFreeAll(ptr_a);
+	SListFreeAll(ptr_b);
+
+	
+}
+
+void TestSListRemoveAfter()
+{
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tRemoveAfter Test \n");
+	ptr_d = SListCreateNode(&d, NULL);
+	ptr_c = SListCreateNode(&c, ptr_d);
+	ptr_b = SListCreateNode(&b, ptr_c);
+	ptr_a = SListCreateNode(&a, ptr_b);
+	
+	SListRemoveAfter(ptr_a);
+	RUN_TEST((ptr_a->next) == ptr_c, "node->next is node->next->next");
+	SListRemoveAfter(ptr_a);
+	RUN_TEST((ptr_a->next) == ptr_d, "second remove gets next->next->next");
+	SListFreeAll(ptr_a);
+	SListFreeAll(ptr_b);
+	SListFreeAll(ptr_c);
 }
 
 
@@ -127,12 +169,11 @@ void TestSListCount()
 	int b = 2;
 	int c = 3;
 	int d = 4;
-	int counter = 0;
-	node_t *ptr_a = NULL;
-	node_t *ptr_b = NULL;
-	node_t *ptr_c = NULL;
-	node_t *ptr_d = NULL;
-	
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tCount Test \n");
 	ptr_d = SListCreateNode(&d, NULL);
 	ptr_c = SListCreateNode(&c, NULL);
 	ptr_b = SListCreateNode(&b, ptr_c);
@@ -140,12 +181,177 @@ void TestSListCount()
 	
 	RUN_TEST(SListCount(ptr_a) == 3, "Count Check");
 	RUN_TEST(SListCount(ptr_d) == 1, "Count Check");
+	SListFreeAll(ptr_a);
+	SListFreeAll(ptr_d);
+}
+
+void TestSListHasLoop()
+{
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tHasLoop? Test \n");
+	ptr_d = SListCreateNode(&d, NULL);
+	ptr_c = SListCreateNode(&c, ptr_d);
+	ptr_b = SListCreateNode(&b, ptr_c);
+	ptr_a = SListCreateNode(&a, ptr_b);
+	
+	
+	RUN_TEST(SListHasLoop(ptr_d) == 0, "Loop Check");
+	ptr_d->next = ptr_a;
+	RUN_TEST(SListHasLoop(ptr_a) == 1, "Loop Check");
+
+
+}
+
+int EnterTwoInAll(sl_node_t *node, void *param)
+{
+	node->data = (int*)param;
+	
+	return 0;
+}
+
+int FindInNode(sl_node_t *node, void *param)
+{
+	if (*(int*)node->data == *(int*)param)
+	{
+		return 1;
+	}
+	
+	return 0;
+}
+
+void TestSListFind()
+{
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+	int counter = 4;
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tFind Test \n");
+	ptr_d = SListCreateNode(&d, NULL);
+	ptr_c = SListCreateNode(&c, ptr_d);
+	ptr_b = SListCreateNode(&b, ptr_c);
+	ptr_a = SListCreateNode(&a, ptr_b);
+	
+	RUN_TEST(SListFind(ptr_a, &counter, (find_ptr)FindInNode) == ptr_d, "Find Check");
+	counter = 0;
+	RUN_TEST(SListFind(ptr_a, &counter, (find_ptr)FindInNode) == NULL, "Find Check");
+	
+
+}
+
+void TestSListForEach()
+{
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+	int counter = 2;
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tForEach Test \n");
+	ptr_d = SListCreateNode(&d, NULL);
+	ptr_c = SListCreateNode(&c, ptr_d);
+	ptr_b = SListCreateNode(&b, ptr_c);
+	ptr_a = SListCreateNode(&a, ptr_b);
+	
+	SListForEach(ptr_a, &counter, EnterTwoInAll);
+	RUN_TEST(*(int*)ptr_d->data == 2, "ForEach Check");
+	RUN_TEST(*(int*)ptr_c->data == 2, "ForEach Check");
+	
+
 }
 
 
+void TestSListFreeAll()
+{
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tFreeAll Test \n");
+	ptr_d = SListCreateNode(&d, NULL);
+	ptr_c = SListCreateNode(&c, NULL);
+	ptr_b = SListCreateNode(&b, ptr_c);
+	ptr_a = SListCreateNode(&a, ptr_b);
+	SListFreeAll(ptr_a);
+	SListFreeAll(ptr_d);
+}
 
+void TestSListFlip()
+{
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	printf("\n\t\tFlip Test \n");
+	ptr_d = SListCreateNode(&d, NULL);
+	ptr_c = SListCreateNode(&c, ptr_d);
+	ptr_b = SListCreateNode(&b, ptr_c);
+	ptr_a = SListCreateNode(&a, ptr_b);
+	
+	RUN_TEST(SListFlip(ptr_a) == ptr_d, "Flip return new head");
+	RUN_TEST((ptr_a->next) == NULL, "Flip old head points to null");
+	RUN_TEST((ptr_d->next) == ptr_c, "Flip new head points to one before");
+	SListFreeAll(ptr_d);
+	
+}
 
+void TestSListFindIntersection()
+{
+	int a = 1;
+	int b = 2;
+	int c = 3;
+	int d = 4;
+	int e = 5;
+	int f = 6;
+	int g = 7;
+	int h = 8;
+	sl_node_t *ptr_a = NULL;
+	sl_node_t *ptr_b = NULL;
+	sl_node_t *ptr_c = NULL;
+	sl_node_t *ptr_d = NULL;
+	sl_node_t *ptr_e = NULL;
+	sl_node_t *ptr_f = NULL;
+	sl_node_t *ptr_g = NULL;
+	sl_node_t *ptr_h = NULL;
+	printf("\n\t\tIntersection Test \n");
+	ptr_h = SListCreateNode(&h, NULL);
+	ptr_g = SListCreateNode(&g, ptr_h);
+	ptr_f = SListCreateNode(&f, ptr_g);
+	ptr_e = SListCreateNode(&e, ptr_f);
+	
+	ptr_d = SListCreateNode(&d, ptr_e);
+	ptr_c = SListCreateNode(&c, ptr_d);
+	ptr_b = SListCreateNode(&b, ptr_c);
+	ptr_a = SListCreateNode(&a, ptr_b);
 
-
-
-
+	SListFlip(ptr_f);
+	RUN_TEST(SListFindIntersection(ptr_h, ptr_a) == ptr_f, "super test");
+	RUN_TEST(SListFindIntersection(ptr_a, ptr_e) == NULL, "Intersection test");
+	RUN_TEST(SListFindIntersection(ptr_a, ptr_b) == NULL, "Intersection test");
+	RUN_TEST(SListFindIntersection(ptr_a, ptr_a) == NULL, "Intersection test");
+	SListFreeAll(ptr_h);
+	SListFreeAll(ptr_a);
+	
+}
