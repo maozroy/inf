@@ -311,8 +311,11 @@ void TestSListFlip()
 	ptr_a = SListCreateNode(&a, ptr_b);
 	
 	RUN_TEST(SListFlip(ptr_a) == ptr_d, "Flip return new head");
-	RUN_TEST((ptr_a->next) == NULL, "Flip old head points to null");
+		RUN_TEST((ptr_a->next) == NULL, "Flip old head points to null");
 	RUN_TEST((ptr_d->next) == ptr_c, "Flip new head points to one before");
+	SListFlip(ptr_d);
+	RUN_TEST(SListFindIntersection(ptr_a, ptr_b) == NULL, "Intersection+flip test");
+
 	SListFreeAll(ptr_d);
 	
 }

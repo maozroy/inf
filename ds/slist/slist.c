@@ -7,20 +7,21 @@
 ********************************************/
 #include <assert.h> /*asserting*/
 #include <stdlib.h> /*malloc & free*/
-#include "slist.h" /*header*/
+
+#include "slist.h"  /*header*/
 
 static void SwapPointers(void **ptr1, void **ptr2);
 
 sl_node_t *SListCreateNode(void *data, sl_node_t *next)
 {
 	sl_node_t *new_node = malloc(sizeof(sl_node_t));
-	
-	assert(data);
-	
 	if (NULL == new_node)
 	{
 		return NULL;
 	}
+	
+	assert(data);
+	
 	new_node->data = data;
 	new_node->next = next;
 	
@@ -36,8 +37,7 @@ sl_node_t *SListInsert(sl_node_t *new_node, sl_node_t *pos)
 	new_node->next = pos->next;
 	pos->next = new_node;
 	
-	return pos;
-
+	return new_node;
 }
 
 sl_node_t *SListInsertAfter(sl_node_t *new_node, sl_node_t *pos)
@@ -52,7 +52,6 @@ sl_node_t *SListInsertAfter(sl_node_t *new_node, sl_node_t *pos)
 	pos->next = new_node;
 	
 	return new_node;
-	
 }
 
 sl_node_t *SListRemove(sl_node_t *node)
@@ -72,7 +71,7 @@ size_t SListCount(const sl_node_t *head)
 	
 	assert(head);
 	
-	while(runner->next != NULL)
+	while (runner->next != NULL)
 	{
 		counter++;
 		runner = runner->next;
@@ -97,20 +96,19 @@ void SListFreeAll(sl_node_t *node)
 {
 	assert(node);
 	
-	if(node->next != NULL)
+	if (node->next != NULL)
 	{
 		SListFreeAll(node->next);
 	}
 
 	free(node);
-
 }
 
 sl_node_t *SListFlip(sl_node_t *head)
 {
-	sl_node_t * next_next = NULL;
-	sl_node_t * next = NULL;
-	sl_node_t * node = head;
+	sl_node_t *next_next = NULL;
+	sl_node_t *next = NULL;
+	sl_node_t *node = head;
 
 	assert(head);
 
@@ -130,7 +128,7 @@ sl_node_t *SListFlip(sl_node_t *head)
 	next = head->next;
 	next_next = next->next;
 	
-	while(next_next->next != NULL )
+	while (next_next->next != NULL )
 	{
 		next->next = node;
 		node = next;
@@ -157,9 +155,9 @@ int SListHasLoop (sl_node_t *head)
 		return (0);
 	}
 	
-	while(fast->next != NULL)
+	while (fast->next != NULL)
 	{
-		if(fast->next == slow)
+		if (fast->next == slow)
 		{
 			return 1;
 		}
@@ -167,7 +165,7 @@ int SListHasLoop (sl_node_t *head)
 		slow = slow->next;
 		fast = fast->next;
 		
-		if(fast->next == NULL)
+		if (fast->next == NULL)
 		{
 			return 0;
 		}
@@ -179,26 +177,24 @@ int SListHasLoop (sl_node_t *head)
 
 const sl_node_t *SListFind(const sl_node_t *node, void *param, find_ptr ptr)
 {	
-
 	assert(node);
 	assert(ptr);
 	assert(param);
 
-	while(node->next != NULL)
+	while (node->next != NULL)
 	{
-
-		if(ptr(node, param) == 1)
+		if (ptr(node, param) == 1)
 		{
 			return node;
 		}
 		
 		node = node->next;
-		
 	}
-		if(ptr(node, param) == 1)
-		{
-			return node;
-		}
+	
+	if (ptr(node, param) == 1)
+	{
+		return node;
+	}
 	
 	return NULL;
 }
@@ -209,9 +205,9 @@ int SListForEach(sl_node_t *node, void *param, for_each_ptr ptr)
 	assert(ptr);
 	assert(param);
 	
-	while(node->next != NULL)
+	while (node->next != NULL)
 	{
-		if(ptr(node, param) == 1)
+		if (ptr(node, param) == 1)
 		{
 			return 1;
 		}
@@ -219,7 +215,7 @@ int SListForEach(sl_node_t *node, void *param, for_each_ptr ptr)
 		node=node->next;
 	}
 	
-	if(ptr(node, param) == 1)
+	if (ptr(node, param) == 1)
 	{
 		return 1;
 	}
@@ -229,9 +225,9 @@ int SListForEach(sl_node_t *node, void *param, for_each_ptr ptr)
 
 sl_node_t *SListFindIntersection (sl_node_t *node1, sl_node_t *node2)
 {
-	sl_node_t * end1 = node1;
-	sl_node_t * end2 = node2;
-	sl_node_t * intersection = NULL;
+	sl_node_t *end1 = node1;
+	sl_node_t *end2 = node2;
+	sl_node_t *intersection = NULL;
 	size_t num_of_nodes1 = 0;
 	size_t num_of_nodes2 = 0;
 	size_t disc = 0;
@@ -240,13 +236,13 @@ sl_node_t *SListFindIntersection (sl_node_t *node1, sl_node_t *node2)
 	assert(node1);
 	assert(node2);
 	
-	while(end1->next != NULL)
+	while (end1->next != NULL)
 	{
 		end1 = end1->next;
 		++num_of_nodes1;
 	}
 	
-	while(end2->next != NULL)
+	while (end2->next != NULL)
 	{
 		end2 = end2->next;
 		++num_of_nodes2;
@@ -256,6 +252,7 @@ sl_node_t *SListFindIntersection (sl_node_t *node1, sl_node_t *node2)
 	{
 		return NULL;
 	}
+	
 	if (num_of_nodes1 > num_of_nodes2)
 	{
 		disc = num_of_nodes1 - num_of_nodes2;
@@ -264,15 +261,16 @@ sl_node_t *SListFindIntersection (sl_node_t *node1, sl_node_t *node2)
 		
 		while (disc > 0)
 		{
-		 end1 = end1->next;
-		 --disc;
+			 end1 = end1->next;
+			 --disc;
 		}
 		
 		if (end1 == node2)
 		{
 			return NULL;
 		}
-		for(; disc_keeper > 0 ; --disc_keeper)
+		
+		for (disc_keeper = disc ; disc_keeper > 0 ; --disc_keeper)
 		{
 			node1 = node1->next;
 		}
@@ -283,9 +281,9 @@ sl_node_t *SListFindIntersection (sl_node_t *node1, sl_node_t *node2)
 			node2 = node2->next;
 			intersection = node1;
 		}
-		
 	}
-	if (num_of_nodes2 > num_of_nodes1)
+	
+	if (num_of_nodes2 >= num_of_nodes1)
 	{
 		disc = num_of_nodes2 - num_of_nodes1;
 		disc_keeper = disc;
@@ -293,15 +291,16 @@ sl_node_t *SListFindIntersection (sl_node_t *node1, sl_node_t *node2)
 		
 		while (disc > 0)
 		{
-		 end2 = end2->next;
-		 --disc;
+			 end2 = end2->next;
+			 --disc;
 		}
 		
 		if (end2 == node1)
 		{
 			return NULL;
 		}
-		for(; disc_keeper > 0 ; --disc_keeper)
+		
+		for (disc_keeper = disc ; disc_keeper > 0 ; --disc_keeper)
 		{
 			node2 = node2->next;
 		}

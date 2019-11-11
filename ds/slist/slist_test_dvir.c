@@ -155,6 +155,7 @@ void SListRemovesTest()
 	}
 	
 	test1 = (4 == *((int *)SListRemove(array[3])->data));
+	printf("%d",*(int*)array[4]->data);
 	test2 = ( 3 == (*((int *)array[4]->data)) );
 	free(array[4]);
 	
