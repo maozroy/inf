@@ -1,6 +1,7 @@
+#include <stdio.h>
 
 #include "dllist.h"
-#include <stdio.h>
+#include "sortedlist.h"
 
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -16,7 +17,7 @@
  KNRM : KRED "failed" KNRM))\
 
 #define TESTARRAY 5
-void TestDLListCreate(void);
+void TestSrtListCreate(void);
 void TestDLListPushBack(void);
 void TestDLListPushFront(void);
 void TestDLListInsert(void);
@@ -25,15 +26,30 @@ void TestDLListPopBack(void);
 void TestDLListRemove(void);
 void TestDLListSplice(void);
 int AddToNode(dll_node_t *node, void *param);
+int IntFindFunc(const void *data, const void *param);
 void PrintIntList(dl_list_t *mylist);
 void TestDLListForEach(void);
 void TestDLListFind(void);
+void TestSrtListInsert(void);
+void TestSrtListPopFront(void);
+void TestSrtListPopBack(void);
+void TestSrtListRemove(void);
+void TestSrtListMerge(void);
+void TestSrtListFindIf(void);
+
+int MyIntAlgo(const void *data1, const void *data2, void *param);
 
 int main()
 {
 
-	TestDLListCreate();
-	TestDLListPushBack();
+	TestSrtListCreate();
+	TestSrtListInsert();
+	TestSrtListPopFront();
+	TestSrtListPopBack();
+	TestSrtListRemove();
+	TestSrtListMerge();
+	TestSrtListFindIf();
+	/*TestDLListPushBack();
 	TestDLListPushFront();
 	TestDLListInsert();
 	TestDLListPopFront();
@@ -41,28 +57,191 @@ int main()
 	TestDLListRemove();
 	TestDLListSplice();
 	TestDLListForEach();
-	TestDLListFind();
+	TestDLListFind();*/
 	return 0;
 }
 
-void TestDLListCreate(void)
+int MyIntAlgo(const void *data1, const void *data2, void *param)
 {
-	dl_list_t *my_list = DLListCreate();
+	(void)param;
+	if ( (*(int*)data1) < (*(int*)data2) )
+	{
+		return 1;
+	}
 	
-	PRINTTESTRESULTS("Create - begin->next is last", 1, 
-			DLListIsSameIterator((((DLListBegin(my_list)))), 
-			(DLListEnd(my_list))));
-			
-	PRINTTESTRESULTS("Create - begin->prev is null", 2, 
-			DLListPrev((DLListPrev((DLListBegin(my_list))))) == (NULL) );
-			
-	PRINTTESTRESULTS("Create - end->next is null", 3, 
-			DLListNext((((DLListEnd(my_list))))) == (NULL) );
-			
-	DLListDestroy(my_list);
+	return 0;
 }
 
+int IntFindFunc(const void *data, const void *param)
+{
+	int int_data = *(int*)data;
+	int int_param = *(int*)param;
+	
+	return (int_data == int_param);
+}
 
+void TestSrtListCreate(void)
+{
+	srt_list_t *my_list = SrtListCreate(NULL, MyIntAlgo);
+	SrtListDestroy(my_list);
+	
+}
+
+void TestSrtListFindIf(void)
+{
+	int arr[] = {15, 234, 123, 657, 11, 0, 4};
+	size_t i = 0;
+	int number = 234;
+	srt_list_t *my_list = SrtListCreate(NULL, MyIntAlgo);
+	srt_iter_t my_iter = {0};
+	
+	for (i = 0 ; i < 7 ; i++)
+	{
+		my_iter = SrtListInsert( &arr[i], my_list);
+	}
+	
+	/*my_iter = SrtListFindIf(SrtListBegin(my_list), SrtListEnd(my_list), 
+						 &number, IntFindFunc);
+	PRINTTESTRESULTS("FindIf",1 ,SrtListIsSameIterator(my_iter, 
+					SrtListNext(SrtListBegin(my_list))));
+	*/
+	SrtListDestroy(my_list);
+}
+
+void TestSrtListInsert(void)
+{
+	int arr[] = {15, 234, 123, 657, 11, 0, 4};
+	size_t i = 0;
+	srt_list_t *my_list = SrtListCreate(NULL, MyIntAlgo);
+	srt_iter_t my_iter = {0};
+	
+	for (i = 0 ; i < 7 ; i++)
+	{
+		my_iter = SrtListInsert( &arr[i], my_list);
+	}
+	PRINTTESTRESULTS("Insert Return", 1, 
+			*(int*)SrtListGetData(my_iter) == 4);
+	PRINTTESTRESULTS("Insert First", 1, 
+			*(int*)SrtListGetData((SrtListBegin(my_list))) == 657);
+	PRINTTESTRESULTS("Insert Last", 1, 
+			*(int*)SrtListGetData(SrtListPrev(SrtListEnd(my_list))) == 0);
+	
+	
+	SrtListDestroy(my_list);
+}
+
+void TestSrtListPopFront(void)
+{
+	int arr[] = {15, 234, 123, 657, 11, 0, 4};
+	int sorted_arr[] = {657, 234, 123, 15, 11, 4, 0};
+	size_t i = 0;
+	int res_counter = 0;
+	
+	srt_list_t *my_list = SrtListCreate(NULL, MyIntAlgo);
+	
+	for (i = 0 ; i < 7 ; i++)
+	{
+		SrtListInsert(&arr[i], my_list);
+	}
+	for (i = 0 ; i < 7 ; i++)
+	{
+		if(sorted_arr[i] != *(int*)SrtListPopFront(my_list))
+		{
+			res_counter++;
+
+		}
+		
+		PRINTTESTRESULTS("PopFront Size", 1, SrtListSize(my_list) == 6 - i);
+	}
+	PRINTTESTRESULTS("PopFront test", 1, res_counter == 0);
+	
+	SrtListDestroy(my_list);
+}
+
+void TestSrtListPopBack(void)
+{
+	int arr[] = {15, 234, 123, 657, 11, 0, 4};
+	int sorted_arr[] = {657, 234, 123, 15, 11, 4, 0};
+	size_t i = 0;
+	int res_counter = 0;
+	
+	srt_list_t *my_list = SrtListCreate(NULL, MyIntAlgo);
+	
+	for (i = 0 ; i < 7 ; i++)
+	{
+		SrtListInsert(&arr[i], my_list);
+	}
+	for (i = 0 ; i < 7 ; i++)
+	{
+		if(sorted_arr[6 - i] != *(int*)SrtListPopBack(my_list))
+		{
+			res_counter++;
+
+		}
+		
+		PRINTTESTRESULTS("PopBack Size", 1, SrtListSize(my_list) == 6 - i);
+	}
+	PRINTTESTRESULTS("PopBack test", 1, res_counter == 0);
+	
+	SrtListDestroy(my_list);
+}
+
+void TestSrtListRemove(void)
+{
+	int arr[] = {15, 234, 123, 657, 11, 0, 4};
+	int sorted_arr[] = {657, 234, 123, 15, 11, 4, 0};
+	size_t i = 0;
+	srt_iter_t my_iter = {0};
+	srt_list_t *my_list = SrtListCreate(NULL, MyIntAlgo);
+	
+	for (i = 0 ; i < 7 ; i++)
+	{
+		SrtListInsert(&arr[i], my_list);
+	}
+	for (i = 0 ; i < 6 ; i++)
+	{
+		
+		my_iter = SrtListRemove(SrtListBegin(my_list));
+		PRINTTESTRESULTS("Remove Return", 1, 
+		*(int*)SrtListGetData(my_iter) == sorted_arr[i + 1]);
+	}
+	PRINTTESTRESULTS("Remove Size", 1, SrtListSize(my_list) == 1);
+	
+	SrtListDestroy(my_list);
+}
+
+void TestSrtListMerge(void)
+{
+	int arr[] = {15, 234, 123, 657, 11, 0, 4};
+	int arr2[] = {6157, 34, 1323, 1, 13, 5, 0};
+	int sorted_arr[] = {6157, 1323, 657, 234, 123, 34, 15, 13, 11, 5, 4, 1, 0, 0};
+	size_t i = 0;
+	srt_iter_t my_iter = {0};
+	srt_list_t *my_list = SrtListCreate(NULL, MyIntAlgo);
+	srt_list_t *my_list2 = SrtListCreate(NULL, MyIntAlgo);
+	
+	for (i = 0 ; i < 7 ; i++)
+	{
+		SrtListInsert(&arr[i], my_list);
+	}
+	
+	for (i = 0 ; i < 7 ; i++)
+	{
+		SrtListInsert(&arr2[i], my_list2);
+	}
+	SrtListMerge(my_list2, my_list);
+	PRINTTESTRESULTS("Merge Size", 1, SrtListSize(my_list) == 14);
+	
+	for (my_iter = SrtListBegin(my_list), i = 0 ;
+		!(SrtListIsSameIterator(my_iter, SrtListEnd(my_list))) ; 
+		my_iter = SrtListNext(my_iter), i++ )
+	{
+		PRINTTESTRESULTS("Merge compare", i,
+			*(int*)SrtListGetData(my_iter) == sorted_arr[i]);
+	}
+	SrtListDestroy(my_list);
+}
+/*
 
 void TestDLListPushBack(void)
 {
@@ -100,9 +279,7 @@ void TestDLListPushFront(void)
 	DLListDestroy(my_list);
 }
 
-/*The function inserts a new node before iterator.
- * The function return the new node.
- */
+
 void TestDLListInsert(void)
 {
 
@@ -122,9 +299,6 @@ void TestDLListInsert(void)
 	DLListDestroy(my_list);
 }
 
-/* The function pops the front node.
- * The function return pointer to the data that was in the node.
- */
 void *DLListPopFront(dl_list_t *list);
 
 void TestDLListPopFront(void)
@@ -305,6 +479,6 @@ void TestDLListFind(void)
 	DLListDestroy(my_list);
 }
 
-
+*/
 
 

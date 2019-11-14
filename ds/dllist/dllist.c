@@ -7,7 +7,6 @@
 ********************************************/
 
 #include <stdlib.h> /*MALLOCING*/
-#include <string.h> /*memcpy*/
 #include <assert.h> /*assert*/
 #include <stdio.h> /*printing*/
 
@@ -27,10 +26,8 @@ struct node
 };
 
 static dll_node_t *DLListCreateNode(
-			void *data, dll_node_t *next, dll_node_t *prev);
+		void *data, dll_node_t *next, dll_node_t *prev);
 static void DestroyNodes(dll_node_t *node);
-void PrintIntList(dl_list_t *mylist);
-
 
 dl_list_t *DLListCreate(void)
 {
@@ -42,7 +39,7 @@ dl_list_t *DLListCreate(void)
 		return NULL;
 	}
 	
-	dummy_begin = DLListCreateNode("0xDEADBEEF",NULL,NULL);
+	dummy_begin = DLListCreateNode((void *)0xDEADBEEF,NULL,NULL);
 	if (NULL == dummy_begin)
 	{
 		free(new_list);
@@ -51,7 +48,8 @@ dl_list_t *DLListCreate(void)
 		return NULL;
 	}
 
-	dummy_end = DLListCreateNode("0xDEADBEEF", NULL ,NULL);
+
+	dummy_end = DLListCreateNode((void *)0xDEADBEEF, NULL ,NULL);
 	if (NULL == dummy_end)
 	{
 		free(new_list);
@@ -64,15 +62,16 @@ dl_list_t *DLListCreate(void)
 	
 	new_list->begin = dummy_begin;
 	new_list->end = dummy_end;
-	new_list->begin->next = dummy_end;
-	new_list->end->prev = dummy_begin;
+	(new_list->begin)->next = dummy_end;
+	(new_list->end)->prev = dummy_begin;
 	
 	return new_list;
 }
 
-
 void DLListDestroy(dl_list_t *list)
 {
+	assert(list);
+	
 	DestroyNodes(list->begin);
 	free(list);
 }
@@ -80,16 +79,19 @@ void DLListDestroy(dl_list_t *list)
 dll_iter_t DLListPushFront(dl_list_t *list, void *data)
 {
 	dll_node_t *new_node = NULL;
+	
+	assert(list);
+	
 	new_node = DLListCreateNode(data, NULL, NULL);
 	if (NULL == new_node)
 	{
-		return NULL;
+		return DLListEnd(list);
 	}
 	
 	new_node->next = list->begin->next;
 	new_node->prev = list->begin;
 	(list->begin->next)->prev = new_node;
-	list->begin->next = new_node;
+	(list->begin)->next = new_node;
 
 	return new_node;
 }
@@ -98,19 +100,18 @@ dll_iter_t DLListPushBack(dl_list_t *list, void *data)
 {
 	dll_node_t *new_node = NULL;
 	
-	assert(data);
 	assert(list);
 	
 	new_node = DLListCreateNode(data, NULL, NULL);
 	if (NULL == new_node)
 	{
-		return NULL;
+		return DLListEnd(list);
 	}
 	
 	new_node->next = list->end;
 	new_node->prev = list->end->prev;
 	(list->end->prev)->next = new_node;
-	list->end->prev = new_node;
+	(list->end)->prev = new_node;
 
 	return new_node;
 }
@@ -118,12 +119,11 @@ dll_iter_t DLListPushBack(dl_list_t *list, void *data)
 dll_iter_t DLListInsert(void *data, dll_iter_t iterator, dl_list_t *list)
 {
 	dll_node_t *new_node = NULL;
-	new_node = DLListCreateNode(data, NULL, NULL);
 
-	assert(data);
 	assert(iterator);
 	assert(list);
 
+	new_node = DLListCreateNode(data, NULL, NULL);
 	if (NULL == new_node)
 	{
 		return DLListEnd(list);
@@ -140,15 +140,11 @@ dll_iter_t DLListInsert(void *data, dll_iter_t iterator, dl_list_t *list)
 void *DLListPopFront(dl_list_t *list)
 {
 	void *ptr = NULL;
-	dll_node_t *node_to_remove = NULL;
 	
 	assert(list);
 	
 	ptr = DLListGetData(DLListBegin(list));
-	node_to_remove = list->begin->next;
-	(list->begin->next->next)->prev = list->begin;
-	list->begin->next = list->begin->next->next;
-	free(node_to_remove);
+	DLListRemove(DLListBegin(list));
 	
 	return ptr;
 }
@@ -156,15 +152,11 @@ void *DLListPopFront(dl_list_t *list)
 void *DLListPopBack(dl_list_t *list)
 {
 	void *ptr = NULL;
-	dll_node_t *node_to_remove = NULL;
 	
 	assert(list);
 	
 	ptr = DLListGetData(DLListPrev(DLListEnd(list)));
-	node_to_remove = list->end->prev;
-	list->end->prev->prev->next = list->end;
-	list->end->prev = list->end->prev->prev;
-	free(node_to_remove);
+	DLListRemove(DLListPrev(DLListEnd(list)));
 	
 	return ptr;
 }
@@ -188,13 +180,14 @@ dll_iter_t DLListSplice(dll_iter_t s_begin, dll_iter_t s_end, dll_iter_t dest)
 	assert(s_begin);
 	assert(s_end);
 	assert(dest);
+	
+	(s_end->prev)->next = dest->next;
+	(s_end)->prev = s_begin->prev;
 
-	s_begin->prev->next = s_end->next;
-	s_end->next->prev = s_begin->prev;
-	s_begin->prev = dest;
-	s_end->next = dest->next;
-	dest->next->prev = s_end;
-	dest->next = s_begin;
+	(dest->next)->prev = s_end->prev;
+	(s_begin->prev)->next = s_end;
+	(s_begin)->prev = dest;
+	(dest)->next = s_begin;
 	
 	return dest;
 }
@@ -206,10 +199,10 @@ size_t DLListSize(const dl_list_t *list)
 	
 	assert(list);
 	
-	node = list->begin;
-	while (node->next->next != NULL)
+	node = DLListBegin(list);
+	while (node != DLListEnd(list))
 	{
-		node = node->next;
+		node = DLListNext(node);
 		counter++;
 	}
 	
@@ -218,7 +211,7 @@ size_t DLListSize(const dl_list_t *list)
 
 int DLListIsEmpty(const dl_list_t *list)
 {
-	return (list->begin->next == list->end);
+	return (DLListBegin(list) == DLListEnd(list));
 }
 
 dll_iter_t DLListFind(dll_iter_t begin, dll_iter_t end, 
@@ -228,20 +221,19 @@ dll_iter_t DLListFind(dll_iter_t begin, dll_iter_t end,
 	
 	assert(begin);
 	assert(end);
-	assert(param);
 	assert(ptr);
 	
 	node = begin;
 	
-	for (node = begin ; node != DLListNext(end) ; node = DLListNext(node))
+	for (node = begin ; node != end ; node = DLListNext(node))
 	{
-		if (ptr(node, param) == 1)
+		if (1 == ptr(node, param))
 		{
 			return node;
 		}
 	}
 	
-	return NULL;
+	return end;
 }
 
 int DLListForEach(dll_iter_t begin, dll_iter_t end, 
@@ -251,13 +243,12 @@ int DLListForEach(dll_iter_t begin, dll_iter_t end,
 	
 	assert(begin);
 	assert(end);
-	assert(param);
 	assert(ptr);
 	
 	node = begin;
 	for (node = begin ; node != end ; node = DLListNext(node))
 	{
-		if (ptr(node, param) == 1)
+		if (1 == ptr(node, param))
 		{
 			return 1;
 		}
@@ -317,8 +308,6 @@ static dll_node_t *DLListCreateNode(void *data, dll_node_t *next, dll_node_t *pr
 		return NULL;
 	}
 	
-	assert(data);
-	
 	new_node->data = data;
 	new_node->next = next;
 	new_node->prev = prev;
@@ -334,20 +323,8 @@ static void DestroyNodes(dll_node_t *node)
 	{
 		DestroyNodes(node->next);
 	}
+	
 	free(node);
 	node = NULL;
-}
-
-void PrintIntList(dl_list_t *mylist)
-{
-	size_t size = DLListSize(mylist);
-	dll_node_t *node = mylist->begin->next;
-	
-	while (size > 1)
-	{
-		printf("%d\n",*(int*)DLListGetData(node));
-		node = node->next;
-		--size;
-	}
 }
 
