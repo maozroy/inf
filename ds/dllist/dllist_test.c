@@ -24,7 +24,7 @@ void TestDLListPopFront(void);
 void TestDLListPopBack(void);
 void TestDLListRemove(void);
 void TestDLListSplice(void);
-int AddToNode(dll_node_t *node, void *param);
+int AddToNode(void *data, void *param);
 void PrintIntList(dl_list_t *mylist);
 void TestDLListForEach(void);
 void TestDLListFind(void);
@@ -247,22 +247,20 @@ void TestDLListSplice(void)
 	DLListDestroy(my_list);
 }
 
-int AddToNode(dll_node_t *node, void *param)
+int AddToNode(void *data, void *param)
 {
-	int *holder = NULL;
-	if (node == NULL)
+	if (data == NULL)
 	{
 		return 1;
 	}
-	holder = DLListGetData(node);
-	*(int*)holder += *(int*)param;
+	*(int*)data += *(int*)param;
 
 	return 0;
 }
 
-int FindInt (const dll_node_t *node, const void *param)
+int FindInt (const void *data, const void *param)
 {
-	if(*(int*)DLListGetData((void*)node) == *(int*)param)
+	if(*(int*)data == *(int*)param)
 	{
 		return 1;
 	}

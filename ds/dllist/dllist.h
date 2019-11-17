@@ -14,8 +14,8 @@
 typedef struct node dll_node_t;
 typedef dll_node_t *dll_iter_t;
 typedef struct dl_list dl_list_t;
-typedef int (*find_ptr)(const dll_node_t *node, const void *param);
-typedef int (*for_each_ptr)(dll_node_t *node, void *param);
+typedef int (*find_ptr)(const void *data, const void *param);
+typedef int (*for_each_ptr)(void *data, void *param);
 
 /* Function creates a list struct.
    returns pointer to list struct 

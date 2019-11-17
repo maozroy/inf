@@ -25,8 +25,7 @@ void TestDLListPopFront(void);
 void TestDLListPopBack(void);
 void TestDLListRemove(void);
 void TestDLListSplice(void);
-int AddToNode(dll_node_t *node, void *param);
-int IntFindFunc(const void *data, const void *param);
+
 void PrintIntList(dl_list_t *mylist);
 void TestDLListForEach(void);
 void TestDLListFind(void);
@@ -36,8 +35,19 @@ void TestSrtListPopBack(void);
 void TestSrtListRemove(void);
 void TestSrtListMerge(void);
 void TestSrtListFindIf(void);
+void TestSrtListInsertStruct(void);
 
 int MyIntAlgo(const void *data1, const void *data2, void *param);
+int AddToNode(dll_node_t *node, void *param);
+int IntFindFunc(const void *data, const void *param);
+int MyStructAlgo(const void *data1, const void *data2, void *param);
+
+typedef struct countries
+{
+	char *name;
+	long pop;
+	float literacy;
+}my_countries;
 
 int main()
 {
@@ -49,22 +59,79 @@ int main()
 	TestSrtListRemove();
 	TestSrtListMerge();
 	TestSrtListFindIf();
-	/*TestDLListPushBack();
-	TestDLListPushFront();
-	TestDLListInsert();
-	TestDLListPopFront();
-	TestDLListPopBack();
-	TestDLListRemove();
-	TestDLListSplice();
-	TestDLListForEach();
-	TestDLListFind();*/
+	TestSrtListInsertStruct();
+	return 0;
+}
+void TestSrtListInsertStruct(void)
+{
+	my_countries record[8];
+	size_t i = 0;
+	srt_list_t *my_list = SrtListCreate(NULL, MyStructAlgo);
+	srt_iter_t my_iter = {0};
+	
+	
+	record[0].name = "Lala Land";
+	record[0].pop = 8000000001;
+	record[0].literacy = 0.2;
+
+	record[1].name = "Shaquanza";
+	record[1].pop = 3;
+	record[1].literacy = 1.6;
+	
+	record[2].name = "Mordor";
+	record[2].pop = 33333333;
+	record[2].literacy = 0.005;
+	
+	record[3].name = "DwarfLand";
+	record[3].pop = 7;
+	record[3].literacy = 0;
+	
+	record[4].name = "Shmilpatia";
+	record[4].pop = 8888888888888;
+	record[4].literacy = 0.95;
+	
+	record[5].name = "Liliput";
+	record[5].pop = 123456789;
+	record[5].literacy = 0.54;
+	
+	record[6].name = "FrupyLand";
+	record[6].pop = 1;
+	record[6].literacy = 1;
+	
+	record[7].name = "The Wall";
+	record[7].pop = 1200;
+	record[7].literacy = 0.4;	
+	
+	
+	for (i = 0 ; i < 8 ; i++)
+	{
+		my_iter = SrtListInsert( &record[i], my_list);
+	}
+	
+	PRINTTESTRESULTS("Insert Return Struct", 1, 
+			(((my_countries *)SrtListGetData(SrtListBegin(my_list)))->pop) 
+								== 8888888888888);
+	PRINTTESTRESULTS("Insert Last Struct", 1, 
+			(((my_countries *)SrtListGetData(SrtListPrev(SrtListEnd(my_list))))->pop) == 1);
+	
+	
+	SrtListDestroy(my_list);
+}
+int MyStructAlgo(const void *data1, const void *data2, void *param)
+{
+	(void)param;
+	if ( (((my_countries *)data1)->pop) > (((my_countries *)data2)->pop) )
+	{
+		return 1;
+	}
+	
 	return 0;
 }
 
 int MyIntAlgo(const void *data1, const void *data2, void *param)
 {
 	(void)param;
-	if ( (*(int*)data1) < (*(int*)data2) )
+	if ( (*(int*)data1) > (*(int*)data2) )
 	{
 		return 1;
 	}
@@ -100,11 +167,11 @@ void TestSrtListFindIf(void)
 		my_iter = SrtListInsert( &arr[i], my_list);
 	}
 	
-	/*my_iter = SrtListFindIf(SrtListBegin(my_list), SrtListEnd(my_list), 
+	my_iter = SrtListFindIf(SrtListBegin(my_list), SrtListEnd(my_list), 
 						 &number, IntFindFunc);
 	PRINTTESTRESULTS("FindIf",1 ,SrtListIsSameIterator(my_iter, 
 					SrtListNext(SrtListBegin(my_list))));
-	*/
+	
 	SrtListDestroy(my_list);
 }
 
@@ -241,244 +308,5 @@ void TestSrtListMerge(void)
 	}
 	SrtListDestroy(my_list);
 }
-/*
-
-void TestDLListPushBack(void)
-{
-
-	size_t i = 0;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-
-		DLListPushBack(my_list, arr+i);
-			PRINTTESTRESULTS("PushBack - last node equal to data pushed", 1, 
-			((DLListGetData(DLListPrev(DLListEnd(my_list))))) == (arr+i) );
-	}
-
-	DLListDestroy(my_list);
-}
-
-void TestDLListPushFront(void)
-{
-
-	size_t i = 0;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-
-		DLListPushFront(my_list, arr+i);
-			PRINTTESTRESULTS("PushFront - begin node equal to data pushed", 1, 
-			((DLListGetData((DLListBegin(my_list))))) == (arr+i) );
-	}
-
-	DLListDestroy(my_list);
-}
-
-
-void TestDLListInsert(void)
-{
-
-	size_t i = 0;
-	dll_iter_t iter = NULL;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	iter = DLListPushFront(my_list, arr+i);
-	for(i = 1 ; i < TESTARRAY ; i++)
-	{
-
-		iter = DLListInsert(arr+i, iter, my_list);
-			PRINTTESTRESULTS("Insert - begin node equal to data pushed", 1, 
-			((DLListGetData(iter))) == (arr+i) );
-	}
-
-	DLListDestroy(my_list);
-}
-
-void *DLListPopFront(dl_list_t *list);
-
-void TestDLListPopFront(void)
-{
-
-	size_t i = 0;
-	int *ptr = NULL;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-
-		DLListPushBack(my_list, arr+i);
-
-	}
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-		ptr = DLListPopFront(my_list);
-			PRINTTESTRESULTS("PopFront", 1, 
-			*(ptr) == *(arr+i) );
-	}
-
-	
-
-	DLListDestroy(my_list);
-}
-
-
-
-void TestDLListPopBack(void)
-{
-
-	size_t i = 0;
-	int *ptr = NULL;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-
-		DLListPushBack(my_list, arr+i);
-
-	}
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-		ptr = DLListPopBack(my_list);
-			PRINTTESTRESULTS("PopBack", 1, 
-			*(ptr) == *(arr + TESTARRAY - i - 1) );
-	}
-
-	
-
-	DLListDestroy(my_list);
-}
-
-void TestDLListRemove(void)
-{
-
-	size_t i = 0;
-	dll_iter_t iter = NULL;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-
-		DLListPushBack(my_list, arr+i);
-
-	}
-	iter = DLListBegin(my_list);
-	for(i = 1 ; i < TESTARRAY ; i++)
-	{
-		iter = DLListRemove(iter);
-			PRINTTESTRESULTS("Remove", 1, 
-			*(int*)DLListGetData(iter) == *(arr + i) );
-	}
-		iter = DLListRemove(iter);
-			PRINTTESTRESULTS("Remove", 2, 
-			DLListNext(iter) == NULL);
-	
-
-	DLListDestroy(my_list);
-}
-
-void TestDLListSplice(void)
-{
-
-	size_t i = 0;
-	dll_iter_t iter = NULL;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	int arr2[TESTARRAY] = {5, 6, 7, 8, 9};
-	dl_list_t *my_list = DLListCreate();
-	dl_list_t *my_list2 = DLListCreate();
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-		DLListPushBack(my_list, arr+i);
-	}
-	
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-		DLListPushBack(my_list2, arr2+i);
-	}
-	
-	iter = DLListSplice(DLListNext(DLListBegin(my_list2)),
-				DLListNext(DLListNext(DLListNext(DLListBegin(my_list2)))),
-				DLListNext(DLListBegin(my_list)));
-	PRINTTESTRESULTS("Splice - return value", 1, 
-			*(int*)DLListGetData(iter) == *(arr + 1) );		
-	PRINTTESTRESULTS("Splice - size test", 1, 
-			DLListSize(my_list) == 7);		
-		PRINTTESTRESULTS("Splice - size test", 2, 
-			DLListSize(my_list2) == 3);		
-		PRINTTESTRESULTS("Splice", 2, 
-			*(int*)DLListGetData(DLListNext(iter)) == *(arr2 + 1));	
-		PRINTTESTRESULTS("Splice", 2, 
-			*(int*)DLListGetData(DLListNext(DLListBegin(my_list2))) 
-				== *(arr2 + 3));
-							
-
-	
-	DLListDestroy(my_list2);
-	DLListDestroy(my_list);
-}
-
-int AddToNode(dll_node_t *node, void *param)
-{
-	int *holder = NULL;
-	if (node == NULL)
-	{
-		return 1;
-	}
-	holder = DLListGetData(node);
-	*(int*)holder += *(int*)param;
-
-	return 0;
-}
-
-int FindInt (const dll_node_t *node, const void *param)
-{
-	if(*(int*)DLListGetData((void*)node) == *(int*)param)
-	{
-		return 1;
-	}
-	return 0;
-}
-
-
-void TestDLListForEach(void)
-{
-	size_t i = 0;
-	dll_iter_t iter = NULL;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-		DLListPushBack(my_list, arr+i);
-	}
-	DLListForEach(DLListBegin(my_list), DLListEnd(my_list), &i, AddToNode);
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-			PRINTTESTRESULTS("ForEach", 1, (*(arr+i) == 5 + i) );
-	}
-	DLListDestroy(my_list);
-}
-
-void TestDLListFind(void)
-{
-	size_t i = 0;
-	int loc = 3;
-	dll_iter_t iter = NULL;
-	int arr[TESTARRAY] = {0, 1, 2, 3, 4};
-	dl_list_t *my_list = DLListCreate();
-	for(i = 0 ; i < TESTARRAY ; i++)
-	{
-		DLListPushBack(my_list, arr+i);
-	}
-	iter = DLListFind(DLListBegin(my_list), DLListEnd(my_list), &loc, FindInt);
-		PRINTTESTRESULTS("Find", 1, DLListGetData(iter) == (arr+3) );
-
-	DLListDestroy(my_list);
-}
-
-*/
 
 

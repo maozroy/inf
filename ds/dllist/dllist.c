@@ -227,7 +227,7 @@ dll_iter_t DLListFind(dll_iter_t begin, dll_iter_t end,
 	
 	for (node = begin ; node != end ; node = DLListNext(node))
 	{
-		if (1 == ptr(node, param))
+		if (1 == ptr(DLListGetData(node), param))
 		{
 			return node;
 		}
@@ -248,7 +248,7 @@ int DLListForEach(dll_iter_t begin, dll_iter_t end,
 	node = begin;
 	for (node = begin ; node != end ; node = DLListNext(node))
 	{
-		if (1 == ptr(node, param))
+		if (1 == ptr(DLListGetData(node), param))
 		{
 			return 1;
 		}
