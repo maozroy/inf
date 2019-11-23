@@ -13,10 +13,10 @@
 
 enum result_status
 {
-	SUCCESS_STOP = 0,
+	STOPPED_SUCCESSFULLY = 0,
 	ENQUEUE_FAILED = 1,
-	SCHEDULER_EMPTY = 2,
-	LIST_DESTROYED = 3
+	SCHEDULER_EMPTY = 2
+
 };
 
 typedef struct scheduler scheduler_t;
@@ -99,8 +99,8 @@ enum result_status SchedRun(scheduler_t *scheduler);
 void SchedStop(scheduler_t *scheduler);
 
 /*  
-*	This function clears all events from the scheduler, but it does not destroy
-*	the scheduler itself.
+*	This function clears all events from the scheduler and de-allocates the 
+*   memory, but it does not destroy the scheduler itself.
 *	
 *	Notice: attempting to clear a non valid scheduler will result in 
 *   undefined behavior. 

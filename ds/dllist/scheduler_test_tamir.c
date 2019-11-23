@@ -197,7 +197,7 @@ void TestSchedRun()
 	SchedAdd(scheduler, interval, action, action_func_param);
 	
 	printf("\n*****" BBLU "TestSchedRun" KNRM "*****\n");
-	TEST("TestSchedRun", 1, 0 == SchedRun(scheduler));
+	TEST("TestSchedRun", 1, 2 == SchedRun(scheduler));
 	printf("***** ********* *****\n");
 	SchedDestroy(scheduler);
 }
@@ -239,7 +239,7 @@ void TestSchedClear()
 	
 	SchedClear(scheduler);
 	printf("\n*****" BBLU "TestSchedClear" KNRM "*****\n");
-	TEST("TestSchedClear", 1, 0 == SchedRun(scheduler));
+	TEST("TestSchedClear", 1, 2 == SchedRun(scheduler));
 	TEST("TestSchedClear", 2, 1 == SchedIsEmpty(scheduler));
 	TEST("TestSchedClear", 3, 0 == SchedSize(scheduler));
 	printf("***** ********* *****\n");
