@@ -8,12 +8,14 @@
 
 #include <stdlib.h> /*MALLOCING*/
 #include <assert.h> /*assert*/
+#include <stdio.h>
 
 #include "dllist.h"
 #include "sortedlist.h"
 
 /*side funcs*/
 static int MyFind(const void *data, const void *param);
+static int MyIsBeforeWrapper(const void *data, const void *param);
 
 struct srt_list
 {
@@ -67,40 +69,63 @@ void SrtListDestroy(srt_list_t *list)
 
 srt_iter_t SrtListInsert(void *data, srt_list_t *list)
 {
-	srt_iter_t new_srt_iter;
+	srt_iter_t new_srt_iter = {0};
 	dll_node_t *node = NULL;
+	my_wrap_for_find *wrapper = (my_wrap_for_find *)
+								malloc(sizeof(my_wrap_for_find));
+
+	wrapper->data = (void*)data;
+	wrapper->param = list->is_before_param;
+	wrapper->is_before_ptr = list->is_before_ptr;
 	
-	assert(list);
-	
-	for(node = DLListBegin(list->dll) ;
-		 node != DLListEnd(list->dll) ; node = DLListNext(node))
-	{
-		if (1 == list->is_before_ptr(data, 
-			DLListGetData(node), list->is_before_param))
-		{
-			break;
-		}
-	}
-	node = DLListInsert(data, node, list->dll);
+		new_srt_iter = SrtListFindIf(SrtListBegin(list), SrtListEnd(list), 
+					   wrapper, MyIsBeforeWrapper);
+
+	node = DLListInsert(data, new_srt_iter.dll_iterator, list->dll);
 	new_srt_iter.dll_iterator = node;
+	free(wrapper);
 	
 	return new_srt_iter;
 }
 
 void SrtListMerge(srt_list_t *src_list, srt_list_t *dest_list)
 {
-	srt_iter_t src_node = {0};
+	srt_iter_t src_runner = {0};
+	srt_iter_t dest_runner = {0};
+	is_before_t is_before = dest_list->is_before_ptr;
+	void *before_param = dest_list->is_before_param;
 	
-	assert(src_list);
-	assert(dest_list);
-	
-	for(src_node = SrtListBegin(src_list) ;
-		 !SrtListIsSameIterator(src_node, SrtListEnd(src_list)) ; 
-		 src_node = SrtListNext(src_node))
+	while(!SrtListIsEmpty(src_list))
 	{
-		SrtListInsert(SrtListGetData(src_node), dest_list);
-	}
-	SrtListDestroy(src_list);
+		src_runner = SrtListBegin(src_list);
+		dest_runner = SrtListBegin(dest_list);
+	
+		while (!(is_before(SrtListGetData(src_runner), 
+		SrtListGetData(dest_runner),before_param)) && !SrtListIsSameIterator
+		(dest_runner, SrtListEnd(dest_list)))
+		{
+			if (SrtListIsSameIterator
+				(dest_runner, SrtListPrev(SrtListEnd(dest_list))))
+				{
+					src_runner = SrtListNext(src_runner);
+					DLListSplice(SrtListBegin(src_list).dll_iterator, 
+					src_runner.dll_iterator, dest_runner.dll_iterator);
+					
+					return;
+				}
+			dest_runner = SrtListNext(dest_runner);
+		}
+		while (is_before(SrtListGetData(src_runner), SrtListGetData(dest_runner)
+				, before_param) && !SrtListIsSameIterator
+				(src_runner, SrtListEnd(src_list)))
+		{
+			src_runner = SrtListNext(src_runner);
+		}
+		
+		DLListSplice(SrtListBegin(src_list).dll_iterator, 
+					src_runner.dll_iterator, 
+					SrtListPrev(dest_runner).dll_iterator);
+		}
 }
 
 srt_iter_t SrtListRemove(srt_iter_t iterator)
@@ -245,6 +270,16 @@ srt_iter_t SrtListFindIf(srt_iter_t begin, srt_iter_t end,
 							end.dll_iterator, param, ptr);
 	
 	return result;
+}
+
+static int MyIsBeforeWrapper(const void *data, const void *param)
+{
+	my_wrap_for_find *ze_struct = (my_wrap_for_find *)param;
+	void *node_data = ze_struct->data;
+	void *is_before_param = ze_struct->param;
+	is_before_t is_before = ze_struct->is_before_ptr;
+	
+	 return is_before(node_data, data, is_before_param);
 }
 
 static int MyFind(const void *data, const void *param)

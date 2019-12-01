@@ -51,13 +51,13 @@ typedef struct countries
 
 int main()
 {
-
+	TestSrtListMerge();
 	TestSrtListCreate();
 	TestSrtListInsert();
 	TestSrtListPopFront();
 	TestSrtListPopBack();
 	TestSrtListRemove();
-	TestSrtListMerge();
+
 	TestSrtListFindIf();
 	TestSrtListInsertStruct();
 	return 0;
@@ -307,6 +307,7 @@ void TestSrtListMerge(void)
 			*(int*)SrtListGetData(my_iter) == sorted_arr[i]);
 	}
 	SrtListDestroy(my_list);
+	SrtListDestroy(my_list2);
 }
 
 

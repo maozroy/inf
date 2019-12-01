@@ -83,6 +83,7 @@ ilrd_uid_t SchedAdd(scheduler_t *scheduler, time_t interval,
  	task_t *new_task = NULL;
  	
  	assert(action);
+ 	assert(scheduler);
  	
  	new_task = TaskCreate(interval, action, action_func_param);
  	if (NULL == new_task)
@@ -143,6 +144,8 @@ enum result_status SchedRun(scheduler_t *scheduler)
 	int result_status = 0;
 	time_t time_to_sleep = 0;
 	
+	assert(scheduler);
+	
 	scheduler->stop_flag = 0;
 	scheduler->has_removed_itself = 0;
 
@@ -197,7 +200,7 @@ void SchedClear(scheduler_t *scheduler)
 
 	while (!(SchedIsEmpty(scheduler)))
 	{
-		if ( (NULL != scheduler->running_task) && (1 == SchedSize(scheduler)) )
+		if ((NULL != scheduler->running_task) && (1 == SchedSize(scheduler)))
 		{		
 				scheduler->has_removed_itself = 1;
 				break;
@@ -220,9 +223,11 @@ int SchedIsEmpty(const scheduler_t *scheduler)
 
 size_t SchedSize(const scheduler_t *scheduler)
 {
-	int size = PQSize(scheduler->pq);
+	size_t size = 0;
 	
 	assert(scheduler);
+	
+	size = PQSize(scheduler->pq);
 	
 	if (NULL != scheduler->running_task)
 	{

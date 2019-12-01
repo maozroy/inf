@@ -40,7 +40,7 @@ task_t *TaskCreate(time_t interval,
 	new_task->task_id = UIDCreate();
 	TaskUpdateTimeToRun(new_task);
 	
-	if ((UIDIsBad(new_task->task_id)))
+	if (UIDIsBad(new_task->task_id))
 	{
 		free(new_task);
 		
