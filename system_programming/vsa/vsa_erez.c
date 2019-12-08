@@ -42,7 +42,6 @@ vsa_t *VSAInit(void *memory_pool, size_t pool_size)
 	assert(pool_size);	
 	
 	header_size = AlignToWordSize(sizeof(vsa_t));
-	pool_size = AlignToWordSize(pool_size);
 	
 	new_vsa->block_size = -pool_size + (2 * header_size);
 	end_dummy = (vsa_t*)((char*)memory_pool + pool_size - header_size);	
@@ -80,15 +79,20 @@ void *VSAAlloc(vsa_t *vsa, size_t block_size)
 	new_header_start->block_size = 
 			((char*)(new_header_end) - (char*)new_header_start - header_size);	
 
+	new_header_start = (vsa_t*)((char*)new_header_start + header_size);
+
 	return (new_header_start);
 }
 /*********/
 void VSAFree(void *allocated_address)
 {  	
-	vsa_t *block = (vsa_t*)allocated_address;
+	vsa_t *block = (vsa_t*)((char*)allocated_address - sizeof(vsa_t));
 
 	assert(allocated_address);
-		
+	if (allocated_address == NULL)
+	{
+	return;
+	}
 	#ifdef NDEBUG
 	if(block->magic_number != MY_MAGIC)
 	{
@@ -101,10 +105,10 @@ void VSAFree(void *allocated_address)
 /*********/
 size_t VSALargestChunk(vsa_t *vsa)
 {
-	size_t max_chunk = 0; 
-	size_t curr_chunk = 0; 	
+	ssize_t max_chunk = 0; 
+	ssize_t curr_chunk = 0; 	
 	vsa_t *block_runner = vsa;
-	size_t header_size = AlignToWordSize(sizeof(vsa_t));
+	ssize_t header_size = AlignToWordSize(sizeof(vsa_t));
 	
 	assert(vsa);
 
@@ -168,13 +172,13 @@ static vsa_t *NewAllocEndHeaderIMP
 	
 	my_header_size = AlignToWordSize(sizeof(vsa_t));		
 		
-	while(block_size_runner < (ssize_t)block_size)
+	while(block_size_runner <= (ssize_t)block_size)
 	{
 		block_size_runner += (header_size - last_header->block_size);
 		last_header = JumpToNextHeader(last_header, header_size);		
 	}
 
-	if ((block_size_runner - block_size) > header_size)
+	if ((block_size_runner - block_size) > header_size + WORD_SIZE)
 	{
 		last_header = (vsa_t*)((char*)first_header + block_size + header_size);	
 		last_header->block_size = 
@@ -195,6 +199,12 @@ static vsa_t *JumpToNextHeader(vsa_t *head, size_t header_size)
 /*********/
 static size_t AlignToWordSize(size_t data)
 {
-	return (data + data % WORD_SIZE);
+	if (data % WORD_SIZE)
+	{
+	
+		return (data + WORD_SIZE - (data % WORD_SIZE));	
+	}
+	
+	return (data);
 }
 /*********/

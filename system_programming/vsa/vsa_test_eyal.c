@@ -23,13 +23,10 @@ void TestVSAFreeDebug()
 	
 	PRINTTESTRESULTS("VSAFree", 1, (*((char *)vsa + 40) == -32));
 	result = VSAAlloc(vsa, 33);
-printf("%d\n",(*((char *)vsa + 40)));
-	PRINTTESTRESULTS("VSAFree", 2, (*((char *)vsa + 40) == 52));
+	PRINTTESTRESULTS("VSAFree", 2, (*((char *)vsa + 40) == 40));
 
 	VSAFree(result);
-printf("%d\n",(*((char *)vsa + 40)));
-	PRINTTESTRESULTS("VSAFree", 3, (*((char *)vsa + 40) == -52));
-			/*printf("%d\n",*((char *)vsa + 40));	*/
+	PRINTTESTRESULTS("VSAFree", 3, (*((char *)vsa + 40) == -40));
 	free(buffer);	
 }
 

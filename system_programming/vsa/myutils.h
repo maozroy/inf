@@ -8,10 +8,8 @@
 
 #define UNUSE(x) ((void)(x))
 
-#define TEST(name, num, result) ((0 == (result))? \
-printf(KCYN "%s:\t Test %d:\t" KRED "FAIL" KNRM "\n", (name), (num)) : \
-printf(KCYN "%s:\t Test %d:\t" KGRN "PASS" KNRM "\n", (name), (num)))
-
+#define TEST(name, int) ((int)>0) ? (printf("%-30s" KGRN " pass" KNRM "\n", name)) \
+									: (printf("%-30s" KRED " fail" KNRM "\n", name))
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
 #define KGRN  "\x1B[32m"
@@ -20,8 +18,5 @@ printf(KCYN "%s:\t Test %d:\t" KGRN "PASS" KNRM "\n", (name), (num)))
 #define KMAG  "\x1B[35m"
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
-#define BRED  "\x1B[41m"
-#define BCYN  "\x1B[45m"
-#define BBLU  "\x1B[44m"
 
 #endif
