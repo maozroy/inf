@@ -10,7 +10,7 @@
 #include <assert.h> /*assert*/
 #include <stdio.h>
 
-#include "dllist.h"
+#include "../dllist/dllist.h"
 #include "sortedlist.h"
 
 /*side funcs*/

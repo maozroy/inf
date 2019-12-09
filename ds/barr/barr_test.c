@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "barr.h"
 #define TEST_MACRO (string, index, result) printf("Test: %s no. %d")
 
@@ -21,7 +22,7 @@ int main()
 	char* temp_p = NULL;
 	bitarray test = 0;
 	unsigned char result = 0;
-	temp_p = malloc(sizeof(char)*(BITS+1));
+	temp_p = malloc(sizeof(char)*(8+1));
 	*temp_p = 0;
 	arr = BArrSetAll(arr);
 
@@ -35,8 +36,8 @@ int main()
 	arr = BArrSetBit(arr, 63, 1);
 	arr = 0;
 	
-	printf("\ncount on lut: %d, ",BArrCountOnLUT(0));
-	printf("\ncount on non: %d, ",BArrCountOn(0));
+	printf("\ncount on lut: %ld, ",BArrCountOnLUT(0));
+	printf("\ncount on non: %ld, ",BArrCountOn(0));
 
 	
 	/*for(i = 0 ; i < 256 ; i++)

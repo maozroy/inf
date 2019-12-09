@@ -8,10 +8,10 @@
 
 
 #include <stdlib.h> /*mallocing*/
-#include <assert.h> /*asserting*/
+#include <assert.h> /*asserting  !*/
 
 #include "queue.h" /*queue header*/
-#include "slist.h" /*slist header*/
+#include "../slist/slist.h" /*slist header*/
 
 struct queue
 {
@@ -116,4 +116,3 @@ void QAppend(queue_t *dest, queue_t *src)
 	free(holder);
 	src = NULL;
 }
-

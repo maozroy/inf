@@ -153,4 +153,3 @@ size_t CBuffCapacity(const cbuff_t *cbuff)
 	
 	return (cbuff->capacity);
 }
-

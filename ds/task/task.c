@@ -9,7 +9,7 @@
 #include <stdlib.h> /*MALLOCING*/
 #include <assert.h> /*asserting*/
 
-#include "uid.h"
+#include "../uid/uid.h"
 #include "task.h"
 
 struct task

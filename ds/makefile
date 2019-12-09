@@ -1,26 +1,42 @@
-CFLAGS := -ansi -pedantic-errors -Wall -Wextra -g
+CFLAGS := -ansi -pedantic-errors -Wall -Wextra -g -c
 CSOFLAGS := -shared
 CC := gcc
-SOURCES := $(subst .c,.o,$(filter-out %test.c, $(wildcard */*.c)))
-MAIN := $(subst .c,.o,$(filter %test.c, $(wildcard */*.c)))
-NAME := $(subst .c,,$(SOURCES))
+OBJ := $(subst .c,.o,$(filter-out %test.c, $(wildcard **/*.c))) #stack/stack.o
+DEP := $(subst .o,.d,$(OBJ)) # uid/uid.d
+MAIN := $(subst .c,.out,$(subst ,,$(filter %test.c, $(wildcard **/*.c)))) #stack/stack_test.out
+NAME := $(subst .o,,$(OBJ)) # obj/obj
+EXCECUT := $(filter test%, $(subst /, test/,$(MAIN))) #test/stack_test.out
+T_FILES := $(subst .out,.t,$(MAIN))  #stack/stack_test.t
 
-all:
-	echo $(SOURCES)
+#all:
+#	echo $(subst .d,.o,$(filter %.o, $(subst /, obj/,$(OBJ)))) -----------------------------------------------------
+
+all: lib/libds_shared.so $(EXCECUT)
+
+#test/%_test.out : libds_shared.so test/$(filter-out test%, $(subst _, , $(subst /, ,$@))).c
+#	 $(CC) $(subst test/,$(filter-out test%, $(subst _, , $(subst /, ,$@)))/, $(subst .out,.c,$@)) #-lds_shared -o $@
+
+lib/libds_shared.so: $(filter %.o, $(subst /, obj/,$(OBJ)))
+	$(CC) $(CSOFLAGS) $^ -o $@
+
+%.d : %.c
+	$(CC) -MM $(CFLAGS) -MT obj/$(subst .d,.o,$(lastword $(subst /, ,$@))) $^ > $@
+	echo '\t'$(CC) -c $^ -fPIC -o obj/$(subst .d,.o,$(lastword $(subst /, ,$@))) >> $@
 	
-#executable: $(NAME)_test.o lib$(NAME)_shared.so
-#	$(CC) $(CFLAGS) $(NAME)_test.o -l$(NAME)_shared -o $(NAME).out
+-include $(DEP)
 
+%.t : %.c
+	echo test/$(lastword $(subst /, ,$(subst .c,.out,$<))) : $< lib/libds_shared.so > $@
+	echo '\t'$(CC) $< -lds_shared -L /lib -Wl,-rpath=/lib -o test/$(lastword $(subst /, ,$(subst .c,.out,$<))) >> $@
 
-#lib$(NAME)_shared.so: $(NAME).o
-#	$(CC) -shared $(NAME).o -o /usr/lib/lib$(NAME)_shared.so
+-include $(T_FILES)
 
-#$(NAME).o: $(NAME).c $(NAME).h
-#	cc -c $(NAME).c $(NAME).h -fPIC
+#%.o : %.c
+#	$(CC) -c  $(CFLAGS) $< -fPIC
 
-#$(NAME)_test.o: $(NAME)_test.c $(NAME).h
-#	cc -c $(NAME)_test.c $(NAME).h -fPIC
-	
 .PHONY: clean
 clean:
-	rm *.o
+	rm $(DEP)
+	rm $(T_FILES)
+	rm obj/*o
+

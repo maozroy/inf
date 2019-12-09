@@ -10,8 +10,8 @@
 #include <assert.h> /*asserting*/
 
 #include "pq.h"
-#include "dllist.h"
-#include "sortedlist.h"
+#include "../dllist/dllist.h"
+#include "../sortedlist/sortedlist.h"
 
 int MyIsBefore(const void *new_data, const void *src_data, void *param);
 

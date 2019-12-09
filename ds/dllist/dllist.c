@@ -327,4 +327,3 @@ static void DestroyNodes(dll_node_t *node)
 	free(node);
 	node = NULL;
 }
-

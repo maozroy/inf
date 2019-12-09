@@ -10,7 +10,7 @@
 #define SORTED_LIST_H
 
 #include <stddef.h>
-#include "dllist.h"
+#include "../dllist/dllist.h"
 
 typedef struct srt_list srt_list_t;
 typedef struct srt_iterator srt_iter_t ;

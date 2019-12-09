@@ -9,7 +9,7 @@
 #define ILRD_TASK_H
 #include <time.h>   /* time_t */
 #include <stddef.h> /* size_t */
-#include "uid.h"
+#include "../uid/uid.h"
 
 typedef int(*task_func)(void *action_func_param);
 typedef struct task task_t;
