@@ -30,11 +30,11 @@ void TESTVSAInit(void)
 	my_vsa = VSAInit(pool, memory_size);
 
 	printf("INIT TEST\n");
-	#ifndef NDEBUG
+	#ifndef DEBUG
 	PRINT_TEST(*(ssize_t *)((char *)pool) == -134, "test", 1);
 	PRINT_TEST(*(ssize_t *)((char *)pool + 134) == 0, "test", 1);
 	#endif
-	#ifdef NDEBUG
+	#ifdef DEBUG
 	PRINT_TEST(*(ssize_t *)((char *)pool) == -118, "test", 1);
 	PRINT_TEST(*(ssize_t *)((char *)pool + 134) == 0, "test", 1);
 	PRINT_TEST(*(size_t *)((char *)pool + 8) == magic_number, "magic_test", 1);

@@ -19,7 +19,7 @@
 typedef struct block_header
 {
 	ssize_t block_size;
-	#ifdef NDEBUG
+	#ifdef DEBUG
     size_t magic_number;
     #endif
 }vsa_block_header_t;
@@ -55,7 +55,7 @@ vsa_t *VSAInit(void *memory_pool, size_t pool_size)
 	vsa_begin->block_size = -pool_size + 2 * HEADER_SIZE;
 	end_header->block_size = 0;
 	
-	#ifdef NDEBUG
+	#ifdef DEBUG
 	vsa_begin->magic_number = magic_number;
 	end_header->magic_number = magic_number;
     #endif
@@ -92,7 +92,7 @@ void *VSAAlloc(vsa_t *vsa, size_t block_size)
 		next_header->block_size = -(next_header_space - 
 									block_size - 
 									HEADER_SIZE);
-		#ifdef NDEBUG
+		#ifdef DEBUG
 		next_header->magic_number = magic_number;
 		#endif
 	}
@@ -109,7 +109,7 @@ void VSAFree(void *allocated_address)
 		return;
 	}
 	
-	#ifdef NDEBUG
+	#ifdef DEBUG
 	if (block->magic_number != magic_number)
 	{
 		return;
