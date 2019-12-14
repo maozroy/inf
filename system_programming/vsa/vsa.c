@@ -153,15 +153,26 @@ static BLOCK *FindClosestFreeSpaceIMP(vsa_t *vsa, ssize_t needed_space)
 	ssize_t max_counter = 0;
 	BLOCK *out_runner = vsa;
 	BLOCK *inner_runner = NULL;
+	BLOCK *block_to_defrag = NULL;
 	
 	while ((out_runner->block_size != 0) && (max_counter < needed_space))
 	{
 		inner_runner = out_runner;
+		block_to_defrag = NULL;
+		if (inner_runner->block_size < 0)
+		{
+			block_to_defrag = inner_runner;
+		}
 		
 		while (inner_runner->block_size < 0)
 		{
 			counter += abs(inner_runner->block_size) + HEADER_SIZE;
-			inner_runner = NextBlockIMP(inner_runner);	
+
+			inner_runner = NextBlockIMP(inner_runner);
+		}
+		if (NULL != block_to_defrag)
+		{
+			block_to_defrag->block_size = -counter + HEADER_SIZE;
 		}
 		
 		max_counter = maxIMP(max_counter, counter);
