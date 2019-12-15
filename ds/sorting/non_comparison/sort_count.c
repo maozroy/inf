@@ -84,15 +84,13 @@ int RadixSort(int *arr, size_t arr_size)
 {
 	size_t max_digits = 0;	
 	size_t i = 0;
-	int *sorted_arr = NULL;
-	unsigned int *histogram = (unsigned int *)calloc
-							(MAX_BUCKET_FOR_RADIX, sizeof(unsigned int));
+	unsigned int *histogram = (unsigned int *)
+								calloc(MAX_BUCKET_FOR_RADIX, sizeof(unsigned int));
+	int *sorted_arr = (int*) malloc(arr_size * sizeof(int));
 	if (NULL == histogram)
 	{
 		return 1;
 	}
-	
-	sorted_arr = (int*) malloc(arr_size * sizeof(int));
 	if (NULL == sorted_arr)
 	{
 		return 1;

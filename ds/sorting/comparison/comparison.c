@@ -63,9 +63,8 @@ void InsertionSort(int *arr, size_t len)
 			 --sorted_i)
 			 {
 			 	arr[sorted_i + 1] = arr[sorted_i];
-			 }
-			 
-			 arr[sorted_i + 1] = element_to_sort;
+			 }	  
+		arr[sorted_i + 1] = element_to_sort;
 	}
 }
 
@@ -97,11 +96,12 @@ static int IsSmallerIMP(int a, int b)
 
 static void IntSwapIMP(int *a, int *b)
 {
-	int temp = *a;
+	int temp = NULL;
 	
 	assert(a);
 	assert(b);
 	
+	temp = *a;
 	*a = *b;
 	*b = temp;
 }

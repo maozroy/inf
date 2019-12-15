@@ -36,8 +36,11 @@ struct bst
 	struct bst_node stub;
 };
 
-
 bst_node_t *CreateNodeIMP(bst_node_t *parent, void *data);
+bst_node_t *GetRightIMP(bst_node_t *node);
+bst_node_t *GetLeftIMP(bst_node_t *node);
+bst_node_t *GetParentIMP(bst_node_t *node);
+bst_iter_t GetRootIMP(bst_t *tree);
 
 bst_t *BSTCreate(comparison_func func, void *param)
 {
@@ -65,10 +68,53 @@ void BSTDestroy(bst_t *tree)
 
 }
 */
+
+void *BSTGetData(bst_iter_t iter)
+{
+	return iter->data;
+}
+
+int BSTIsSameIterator(bst_iter_t iter1, bst_iter_t iter2)
+{
+	return (&iter1->data == &iter2->data);
+}
+
+bst_iter_t BSTBegin(const bst_t *tree)
+{
+	bst_iter_t node = GetRootIMP((bst_t *) tree);
+	while (node->left != NULL)
+	{
+		node = GetLeftIMP(node);
+	}
+	
+	return node;
+}
+bst_iter_t BSTEnd(const bst_t *tree)
+{
+	bst_iter_t node = GetRootIMP((bst_t *) tree);
+	while (node->right != NULL)
+	{
+		node = GetRightIMP(node);
+	}
+	return node;
+}
+int BSTIsEmpty(const bst_t *tree)
+{
+	if ((size_t)&GetRootIMP((bst_t *) tree)->right >= 100)
+	{
+		return 0;
+	}
+	if ((size_t)&GetRootIMP((bst_t *) tree)->left >= 100)
+	{
+		return 0;
+	}
+	return 1;
+}
+
 bst_iter_t BSTInsert(bst_t *tree, void *data)
 {
 	bst_node_t *parent = &tree->stub;
-	bst_node_t *runner = tree->stub.left;
+	bst_node_t *runner = GetRootIMP(tree);
 	bst_node_t **new_node_parent_location = &(tree->stub.left);
 	int which_child = -1;
 	
@@ -104,8 +150,25 @@ bst_node_t *CreateNodeIMP(bst_node_t *parent, void *data)
 	return new_node;
 }
 
+bst_node_t *GetRightIMP(bst_node_t *node)
+{
+	return node->right;
+}
 
+bst_node_t *GetLeftIMP(bst_node_t *node)
+{
+	return node->left;
+}
 
+bst_node_t *GetParentIMP(bst_node_t *node)
+{
+	return node->parent;
+}
+
+bst_iter_t GetRootIMP(bst_t *tree)
+{
+	return tree->stub.left;
+}
 
 
 

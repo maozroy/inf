@@ -47,11 +47,14 @@ TestBSTInsert();
 
 void TestBSTCreate()
 {
-	int x = 10;
+	int arr[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+	int i = 0;
 	bst_t *my_tree = NULL;
-	bst_iter_t *my_iter = NULL;
+	bst_iter_t my_iter[10] = {0};
+	bst_iter_t new_iter = {0};
 
 	my_tree = BSTCreate(my_cmp, NULL);
+<<<<<<< HEAD
 	/*my_iter = BSTInsert(my_tree, &x);*/
 	
 	
@@ -77,7 +80,20 @@ void TestBSTInsert()
 	BSTInsert(tree, &z);
 	printf("%d \n",*(int*)(tree -> stub.left->left->left-> data));
 
+=======
+	printf("is it empty? %d\n",BSTIsEmpty(my_tree));
+	for (i = 0 ; i < 10 ; i++)
+	{
+		my_iter[i] = BSTInsert(my_tree, &arr[i]);
+	}
+	printf("is it empty? %d\n",BSTIsEmpty(my_tree));
+	
+	new_iter = BSTEnd(my_tree);
+	printf("%d",BSTIsSameIterator(new_iter, my_iter[9]));
+	printf("is it the start? %d",BSTIsSameIterator(BSTBegin(my_tree), my_iter[0]));
+>>>>>>> 5b9c9522cceec75e506caf4db50e05f6abeb9e22
 }
+
 
 int my_cmp (const void *new_data, 
 							   const void *src_data, 

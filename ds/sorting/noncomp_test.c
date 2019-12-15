@@ -84,7 +84,7 @@ void TestRadixSort()
 		arr2[i] = random;
 	}
 
-	SelectionSort(arr1, 10);
+	RadixSort(arr1, 10);
 	qsort(arr2, 10, sizeof(int), CompareFunc);
 	printf("RadixSort\n");
 	TEST1(memcmp(arr1, arr2, 10*sizeof(int)), 0);
