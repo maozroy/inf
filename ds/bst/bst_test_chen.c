@@ -296,7 +296,7 @@ void TestCrazy()
 	
 	for (k = 0; k < NUM_OF_ITERATIONS ; ++k)
 	{
-		
+		sleep(1);	
 		new_bst = BSTCreate(MyComparisonFunc, &param);
 		srand(time(NULL));
 		for (i = 0; i < ARR_LENGTH; ++i)
@@ -314,10 +314,13 @@ void TestCrazy()
 		}
 		
 		randomize(values, ARR_LENGTH);
-		
+		for (i = 0 ; i < ARR_LENGTH ; i++)
+		{
+		printf("%d ,",values[i]);
+		}
 		qsort(values_after_qsort, sizeof(values)/sizeof(int), 
 						  		  sizeof(int), QSortCompare);
-		
+		printf("\n");
 		/* finding indice */
 		for (i = 0; i < ARR_LENGTH; ++i)
 		{

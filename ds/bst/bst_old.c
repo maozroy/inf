@@ -1,8 +1,8 @@
  /********************************************
-*	Author : Maoz Roytman			
-*	Reviewer : 	Gal Salemon
-*					bst	
-*	Date: Thu Dec 12 2019		                
+*	Author : 			
+*	Reviewer : 	
+*	bst					
+*	Date: Thu Dec 12 17:07:03 IST 2019		                
 *																				
 ********************************************/
 
@@ -10,12 +10,18 @@
 #include <assert.h> /*asserting*/
 
 #include "bst.h"
-
 #define LEFT -1
 #define RIGHT 1
-#define FALSE 0
-#define TRUE 1
-#define OTHER_DIRECTION -1
+
+/*
+typedef struct bst_node bst_node_t;
+typedef bst_node_t *bst_iter_t;
+typedef struct bst bst_t;
+typedef int (*comparison_func)(const void *new_data, 
+							   const void *src_data, 
+							   const void *comp_param);
+typedef int (*action_func)(void *data, void *for_each_param);
+*/
 
 struct bst_node
 {
@@ -32,35 +38,31 @@ struct bst
 	struct bst_node stub;
 };
 
-enum kids_state {NO_CHILD = 0,
-				LEFT_CHILD = -1, 
-				RIGHT_CHILD = 1, 
-				TWO_CHILDS = 3};
+enum kids_state {no_child = 0,
+				left_child = -1, 
+				right_child = 1, 
+				two_childs = 3};
 
 enum direction {up = 2,
 				left = -1, 
 				right = 1};
 				
-typedef enum direction pick_direction;
 
-static bst_node_t *CreateNodeIMP(bst_iter_t parent, void *data);
-
+static bst_node_t *CreateNodeIMP(bst_node_t *parent, void *data);
+static enum kids_state GetNumOfKidsIMP(bst_iter_t node);
 static int SizeCounterIMP(void *data, void* counter);
 
-static bst_iter_t GetMostDirectionIMP(bst_iter_t node, pick_direction direction);
-static bst_node_t *GetDirectionIMP(bst_iter_t node, pick_direction direction);
+static bst_iter_t GetMostDirectionIMP(bst_iter_t node, enum direction direction);
+static bst_node_t *GetDirectionIMP(bst_node_t *node, enum direction direction);
 static bst_iter_t GetRootIMP(bst_t *tree);
-
-static void NullifyChildIMP(bst_iter_t iter, pick_direction direction);
-
-static int WhichChildIAmIMP(bst_iter_t iter, pick_direction direction);
-static enum kids_state HowManyKidsIMP(bst_iter_t node);
+static void NullifyChildIMP(bst_iter_t iter, enum direction direction);
+static int IsASignKidIMP(bst_iter_t node, enum direction direction);
 
 static bst_iter_t BSTTraverseIMP(bst_iter_t iter, int sign);
 
 static bst_iter_t DestroyAndGoUp(bst_iter_t node);
-static void ConnectLegIMP(bst_iter_t parent, bst_iter_t node, 
-						  pick_direction direction);
+
+static void ConnectLegIMP(bst_iter_t parent, bst_iter_t node, enum direction d);
 
 bst_t *BSTCreate(comparison_func func, void *param)
 {
@@ -81,35 +83,32 @@ bst_t *BSTCreate(comparison_func func, void *param)
 
 void BSTDestroy(bst_t *tree)
 {
-	bst_iter_t runner = NULL;
+	bst_iter_t runner = GetRootIMP(tree);
 	
 	assert(tree);
-	
-	runner = GetRootIMP(tree);
 	
 	if (NULL == runner)
 	{
 		free(tree);
 		return;
 	}
-	
 	while (runner != &tree->stub)
 	{
-		switch (HowManyKidsIMP(runner))
+		switch (GetNumOfKidsIMP(runner))
 		{
-			case NO_CHILD:
+			case no_child:
 				runner = DestroyAndGoUp(runner);
 				break;
 				
-			case LEFT_CHILD:
+			case left_child:
 				runner = GetDirectionIMP(runner, left);
 				break;
 				
-			case RIGHT_CHILD:
+			case right_child:
 				runner = GetDirectionIMP(runner, right);
 				break;
 				
-			case TWO_CHILDS:
+			case two_childs:
 				runner = GetDirectionIMP(runner, right);
 				break;
 		}
@@ -122,7 +121,7 @@ bst_iter_t BSTInsert(bst_t *tree, void *data)
 	bst_node_t *parent = &tree->stub;
 	bst_node_t *runner = GetRootIMP(tree);
 	bst_node_t **address_of_parent = &(tree->stub.left);
-	int which_child = LEFT;
+	int which_child = -1;
 	
 	assert(tree);
 	assert(data);
@@ -150,26 +149,26 @@ bst_iter_t BSTInsert(bst_t *tree, void *data)
 
 void BSTRemove(bst_iter_t iter)
 {
-	int is_RIGHT_CHILD = WhichChildIAmIMP(iter, right);
+	int is_right_child = IsASignKidIMP(iter, right);
 	bst_iter_t leftest = {0};
 	
-	switch (HowManyKidsIMP(iter))
+	switch (GetNumOfKidsIMP(iter))
 	{
-	case NO_CHILD:
-		NullifyChildIMP(GetDirectionIMP(iter, up), is_RIGHT_CHILD);
+	case no_child:
+		NullifyChildIMP(GetDirectionIMP(iter, up), is_right_child);
 		break;
 		
-	case LEFT_CHILD:
-		ConnectLegIMP(iter->parent, iter->left, is_RIGHT_CHILD);
+	case left_child:
+		ConnectLegIMP(iter->parent, iter->left, is_right_child);
 		break;
 		
-	case RIGHT_CHILD:
-		ConnectLegIMP(iter->parent, iter->right, is_RIGHT_CHILD);
+	case right_child:
+		ConnectLegIMP(iter->parent, iter->right, is_right_child);
 		break;
 		
-	case TWO_CHILDS:
+	case two_childs:
 		leftest = GetMostDirectionIMP(iter->right, left);
-		ConnectLegIMP(iter->parent, iter->right, is_RIGHT_CHILD);
+		ConnectLegIMP(iter->parent, iter->right, is_right_child);
 		ConnectLegIMP(leftest, iter->left, left);
 		break;
 		
@@ -179,7 +178,7 @@ void BSTRemove(bst_iter_t iter)
 
 bst_iter_t BSTFind(bst_t *tree, void *data)
 {
-	bst_iter_t node = NULL;
+	bst_iter_t node = {0};
 	int which_child = 0;
 	
 	assert(tree);
@@ -204,7 +203,16 @@ int BSTIsEmpty(const bst_t *tree)
 {
 	assert(tree);
 
-	return (GetRootIMP((bst_t *)tree) == NULL);
+	if ((size_t)&GetRootIMP((bst_t *) tree)->right >= 100)
+	{
+		return 0;
+	}
+	if ((size_t)&GetRootIMP((bst_t *) tree)->left >= 100)
+	{
+		return 0;
+	}
+	
+	return 1;
 }
 
 static int SizeCounterIMP(void *data, void* counter)
@@ -222,32 +230,32 @@ size_t BSTSize(const bst_t *tree)
 {
 	size_t counter = 0;
 	
-	BSTForEach(BSTBegin(tree), BSTEnd(tree), SizeCounterIMP, &counter);
+	BSTForEach(BSTBegin(tree), BSTEnd(tree) ,SizeCounterIMP ,&counter);
 	
 	return counter;
 }
 
 int BSTForEach(bst_iter_t begin, bst_iter_t end, action_func func, void *param)
 {
-	bst_iter_t node = NULL;
-	int func_result = FALSE;	
+	bst_iter_t node = {0};
+	int status = 0;	
 	
 	assert(func);
 	
 	if (begin == NULL)
 	{
-		return func_result;
+		return status;
 	}
 	
-	for (node = begin; node != end; node = BSTNext(node))
+	for (node = begin ; node != end ; node = BSTNext(node))
 		{
-			func_result = func(BSTGetData(node), param);
-			if (func_result != FALSE)
+			status = func(BSTGetData(node), param);
+			if (status != 0)
 			{
 				break;
 			}
 		}
-	return func_result;
+	return status;
 }
 
 bst_iter_t BSTNext(bst_iter_t iter)
@@ -288,15 +296,13 @@ int BSTIsSameIterator(bst_iter_t iter1, bst_iter_t iter2)
 	return (&iter1->data == &iter2->data);
 }
 
-static int WhichChildIAmIMP(bst_iter_t node, enum direction direction)
+static int IsASignKidIMP(bst_iter_t node, enum direction direction)
 {	
-	if (BSTIsSameIterator(node, 
-						 GetDirectionIMP(GetDirectionIMP(node, up), direction)))
+	if (BSTIsSameIterator(node, GetDirectionIMP(GetDirectionIMP(node, up), direction)))
 	{
-		return TRUE;
+		return 1;
 	}
-	
-	return OTHER_DIRECTION;
+	return -1;
 }
 
 static bst_node_t *CreateNodeIMP(bst_iter_t parent, void *data)
@@ -318,7 +324,7 @@ static bst_iter_t GetRootIMP(bst_t *tree)
 	return tree->stub.left;
 }
 static void ConnectLegIMP(bst_iter_t parent, bst_iter_t node, 
-						  enum direction direction)
+							enum direction direction)
 {
 	if (direction == RIGHT)
 	{
@@ -331,23 +337,23 @@ static void ConnectLegIMP(bst_iter_t parent, bst_iter_t node,
 	node->parent = parent;
 }
 
-static enum kids_state HowManyKidsIMP(bst_iter_t node)
+static enum kids_state GetNumOfKidsIMP(bst_iter_t node)
 {
 	if (NULL != GetDirectionIMP(node, left) &&
 		NULL != GetDirectionIMP(node, right))
 	{
-		return TWO_CHILDS;
+		return two_childs;
 	}
 	if (NULL != GetDirectionIMP(node, left))
 	{
-		return LEFT_CHILD;
+		return left_child;
 	}
 	if (NULL != GetDirectionIMP(node, right))
 	{
-		return RIGHT_CHILD;
+		return right_child;
 	}
 	
-	return NO_CHILD;
+	return no_child;
 }
 static bst_iter_t GetMostDirectionIMP(bst_iter_t node, enum direction direction)
 {
@@ -365,7 +371,6 @@ static bst_iter_t GetMostDirectionIMP(bst_iter_t node, enum direction direction)
 			node = GetDirectionIMP(node, direction);
 		}
 	}
-	
 	return node;
 }
 
@@ -390,7 +395,6 @@ static bst_node_t *GetDirectionIMP(bst_iter_t node, enum direction direction)
 			returned_iter = node->left;
 			break;
 	}
-	
 	return returned_iter;
 }
 
@@ -399,7 +403,7 @@ static bst_iter_t DestroyAndGoUp(bst_iter_t node)
 	bst_iter_t parent = NULL;
 	parent = GetDirectionIMP(node, up);
 	
-	if (WhichChildIAmIMP(node, right) == RIGHT)
+	if (IsASignKidIMP(node, right) == RIGHT)
 	{
 		parent->right = NULL;
 	}
@@ -416,21 +420,21 @@ static bst_iter_t BSTTraverseIMP(bst_iter_t iter, int sign)
 {
 	bst_iter_t child = NULL;
 
-	child = GetDirectionIMP(iter, sign);
-
-	if (child != NULL)
-	{
-		child = GetMostDirectionIMP(child, sign * LEFT);
-		iter = child;
-	}
-	else
-	{
-		while (WhichChildIAmIMP(iter, sign) == RIGHT)
+		child = GetDirectionIMP(iter, sign);
+		
+		if (child != NULL)
 		{
+			child = GetMostDirectionIMP(child, sign * LEFT);
+			iter = child;
+		}
+		else
+		{
+			while (IsASignKidIMP(iter, sign) == RIGHT)
+			{
+				iter = GetDirectionIMP(iter, up);
+			}
 			iter = GetDirectionIMP(iter, up);
 		}
-		iter = GetDirectionIMP(iter, up);
-	}
 	return iter;
 }
 
