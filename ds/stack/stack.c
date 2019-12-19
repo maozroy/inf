@@ -22,7 +22,7 @@ stack_t *StackCreate(size_t num_of_elements, size_t elements_size)
 
 	assert(num_of_elements || elements_size);
 	
-	stack->head = malloc( num_of_elements*elements_size);
+	stack->head = malloc(num_of_elements*elements_size);
 	if (NULL == stack->head)
 	{
 		return 0;
@@ -79,6 +79,7 @@ void CopyVoidToVoid(void *src, void *dst, size_t n)
 void *StackPeek(const stack_t *stack)
 {
 	assert(stack);
+	
 	
 	return (((char*) stack->current) - stack->elements_size);
 }

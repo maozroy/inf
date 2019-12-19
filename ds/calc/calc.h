@@ -9,12 +9,13 @@
 #ifndef ILRD_CALC_H
 #define ILRD_CALC_H
 
-typedef enum 
+typedef enum status
 {
-	SUCCESS,
-	DIVISION_BY_ZERO,
-	INVALID_EXP
-} status;
+	SUCCESS = 0,
+	DIVISION_BY_ZERO = 1,
+	INVALID_EXP = 2,
+	ALLOC_FAIL = 3
+}status_t;
 
 /* Calc receives two arguments and returns a status type
  * @exp: a pointer of type const char *
@@ -22,8 +23,9 @@ typedef enum
  * @exp and @res must be valid pointers, otherwise, behavior is undefined
  * On success the function returns SUCCESS
  * On failure the function returns DIVISION_BY_ZERO if that's the case or
- * INVALID_EXP if otherwise
+ * INVALID_EXP if otherwise.
+ * Check status before using @res
  */
-status Calc(const char *exp, double *res);
+status_t Calc(const char *exp, double *res);
 
 #endif
