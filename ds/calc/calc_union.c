@@ -10,6 +10,7 @@
 #include <assert.h> /*asserting*/
 #include <stdio.h>
 #include <math.h>
+#include <ctype.h>
 
 #include "calc.h"
 #include "../stack/stack.h"
@@ -102,8 +103,11 @@ op_struct_t OP_FUNCS[55] = {{NULL,0}, {NULL,0}, {MultiplyIMP, 3},
 							{AdditionIMP, 2}, {NULL,0}, {SubtractIMP, 2},
 							{NULL,0}, {DivisionIMP, 3}, FORTY_FIVE_NULL, 
 							{NULL, 0}, {PowerIMP, 4}};
-							
-					
+
+typedef enum flag_input{OP = 0,
+					NUM = 1
+					} flag_input;
+			
 typedef union input
 {
 	double num;
@@ -113,15 +117,18 @@ typedef union input
 typedef struct tagged_union
 {
 	input_t input;
-	int flag;
+	flag_input flag;
 } t_union;
 					
 							
 status_t Calc(const char *exp, double *res)
 {
 	char dummy = ']';	
-	char prev_char = 0;
+	char current_char = 0;
+	char prev_op = 0;
+	void *prev_location = NULL;
 	double num = 0;
+	t_union tagged_input = {0};
 	
 	current_status = SUCCESS;
 	current_state = WAIT_FOR_NUM;
@@ -143,31 +150,40 @@ status_t Calc(const char *exp, double *res)
 	
 	while (current_status == SUCCESS && *(char*)exp != '\0')
 	{
-		prev_char = *exp;
-	
-		if (current_state == WAIT_FOR_NUM)
+		current_char = *exp;
+		prev_op = *(char*)StackPeek(op_stack);
+		prev_location = (void *)exp;
+		num = strtod(exp, (char**)&exp);
+		
+		if (*((char*)exp-1) == '(' && 
+			(current_char == '+' || current_char == '-') && 
+			isdigit(*((char*)prev_location+1)) )
 		{
-			if (*exp != '(')
-			{
-				num = strtod(exp, (char**)&exp);
-				current_status = ASCII[current_state][(int)prev_char].action_func(&num);
-			}
-			else
-			{
-				current_status = ASCII[current_state][(int)prev_char].action_func(&prev_char);
-				++exp;
-			}
+			tagged_input.flag = NUM;
+			tagged_input.input.num = num;
 		}
 		else
 		{
-			current_status = ASCII[current_state][(int)prev_char].action_func((char *)exp);
-			++exp;
-		}		
-		current_state = ASCII[current_state][(int)prev_char].next_state;
+			if (!(isdigit(current_char)) )
+			{
+				tagged_input.input.op = current_char;
+				tagged_input.flag = OP;
+				exp = prev_location;
+				++exp;
+			}
+			else
+			{
+				tagged_input.flag = NUM;
+				tagged_input.input.num = num;
+			}
+		}
+		current_status = ASCII[current_state][(int)current_char].action_func(&tagged_input);
+		current_state = ASCII[current_state][(int)current_char].next_state;
 	}
+	
 	if (current_status == SUCCESS)
 	{
-		current_status = ASCII[current_state][(int)*exp].action_func((char *)exp);
+		current_status = ASCII[current_state][*(char*)exp].action_func((char *)exp);
 		*res = *(double *)StackPeek(num_stack);
 	}
 	
@@ -187,6 +203,9 @@ static status_t PushCloseParanIMP(void *exp)
 	{
 		status = PerformCalcAndPushToStackIMP(prev_op);
 	}
+	
+	
+	
 	StackPop(op_stack);
 	
 	return status;
@@ -202,7 +221,9 @@ static status_t ErrorIMP(void *exp)
 
 static status_t PushToNumIMP(void *exp)
 {
-	double num = *(double*)exp;
+	t_union *input = exp;
+	
+	double num = input->input.num;
 	
 	StackPush(num_stack, &num);
 
@@ -212,27 +233,32 @@ static status_t PushToNumIMP(void *exp)
 
 static status_t PushToOPNoPrecedenceIMP(void *exp)
 {
-	StackPush(op_stack, (char*)exp);
+	t_union *input = exp;
+	char op = input->input.op;
+
+	StackPush(op_stack, &op);
 	
 	return SUCCESS;
 }
 
 static status_t PushToOPIMP(void *exp)
 {
-	char previous_operation = *(char*)(StackPeek(op_stack));
+	char prev_op = *(char*)(StackPeek(op_stack));
 	status_t status = SUCCESS;
+	t_union *input = exp;
+	char op = input->input.op;
 	
-	while ((OP_FUNCS[*	(char *)exp-'('].table <= 
-		OP_FUNCS[(int)previous_operation-'('].table) &&
+	while ((OP_FUNCS[op-'('].table <= 
+		OP_FUNCS[(int)prev_op-'('].table) &&
 		status == SUCCESS)
 	{
-		status = PerformCalcAndPushToStackIMP(previous_operation);
+		status = PerformCalcAndPushToStackIMP(prev_op);
 		StackPop(op_stack);
-		previous_operation = *(char*)StackPeek(op_stack);
+		prev_op = *(char*)StackPeek(op_stack);
 
 	}
 
-	StackPush(op_stack, (char*)exp);
+	StackPush(op_stack, &op);
 	
 	return status;
 }
