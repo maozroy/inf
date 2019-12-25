@@ -51,6 +51,9 @@ static enum direction IsMyChildTheChosenOneIMP
 
 static void RemoveByParentIMP(avl_node_t *node_to_remove,enum direction direction);
 static void RemoveRootIMP(avl_node_t *node, avl_t *tree);
+static size_t GetHeightIMP(avl_node_t *node);
+static enum direction GetOppositeIMP(enum direction direction);
+static avl_node_t *AVLBalanceIMP(avl_node_t *node);
 
 avl_t *AVLCreate(comparison_func_t func)
 {
@@ -262,6 +265,7 @@ static void RecRemoveIMP(avl_node_t *node, void *data, avl_t *tree)
 	if (cmp_result == 0)
 	{
 		RemoveRootIMP(node, tree);
+		tree->root = AVLBalanceIMP(tree->root);
 		tree->root->height = UpdateHeightIMP(tree->root);
 		return;
 	}
@@ -276,6 +280,8 @@ static void RecRemoveIMP(avl_node_t *node, void *data, avl_t *tree)
 	
 
 	RecRemoveIMP(node->children[GetDirectionIMP(cmp_result)],data, tree);
+	node = AVLBalanceIMP(node);
+	
 	node->children[GetDirectionIMP(cmp_result)]->height = 
 	UpdateHeightIMP(node->children[GetDirectionIMP(cmp_result)]);
 	return;
@@ -396,8 +402,9 @@ static avl_node_t *RecInsertIMP(avl_node_t **node, comparison_func_t func, void 
 		direction = GetDirectionIMP(cmp_result);
 		(*node)->children[direction] = RecInsertIMP(&((*node)->children[direction]), func, data);
 	}
-	 (*node)->height = UpdateHeightIMP(*node);
-	/*BalanceIMP*/
+	(*node) = AVLBalanceIMP(*node);
+	(*node)->height = UpdateHeightIMP(*node);
+	
 	return *node;
 }
 
@@ -459,4 +466,134 @@ static avl_node_t *CreateNodeIMP(void *data)
 	return new_node;
 
 }
+
+static size_t GetHeightIMP(avl_node_t *node)
+{
+	if (NULL == node)
+	{
+		return -1;
+	}
+	return node -> height;
+}
+
+static size_t GetDifferenceIMP(avl_node_t *node)
+{
+	if (NULL == node)
+	{
+		return 0;
+	}
+	return (GetHeightIMP(node->children[RIGHT])
+				- GetHeightIMP(node->children[LEFT]));
+}
+
+static avl_node_t *OneDegreeRotation(avl_node_t *node, int dir)
+{
+	avl_node_t *pivot = node->children[dir];
+	
+	node->children[dir] = node->children[dir]-> children[GetOppositeIMP(dir)];					
+	pivot->children[GetOppositeIMP(dir)] = node;
+	node->height -=1;
+	
+	return pivot;
+}
+
+static avl_node_t *TwoDegreeRotation(avl_node_t *node, int dir)
+{
+	avl_node_t *pivot = node->children[dir];
+	avl_node_t *node_to_connect = node->children[dir]->children[GetOppositeIMP(dir)];
+	
+	node->children[dir] = node_to_connect;
+	pivot->children[GetOppositeIMP(dir)] = node_to_connect->children[dir];
+	node_to_connect->children[dir] = pivot;
+	pivot->height -= 1;
+	node_to_connect += 1;
+
+	return ;
+}
+
+static enum direction GetOppositeIMP(enum direction direction)
+{
+	if (direction == RIGHT)
+	{
+		return LEFT;
+	}
+	if (direction == LEFT)
+	{
+		return RIGHT;
+	}
+	
+	return NONE;
+}
+
+static avl_node_t *AVLBalanceIMP(avl_node_t *node)
+{
+	avl_node_t *pivot = NULL;
+	int main_rotation = GetDifferenceIMP(node);
+	int small_rotation = 0;
+
+	if (main_rotation > 1)
+	{
+		main_rotation = RIGHT;
+		small_rotation = GetDifferenceIMP(node->children[main_rotation]);
+		
+		if (small_rotation >= 0)
+		{
+			pivot = OneDegreeRotation(node, main_rotation);
+		}
+		else
+		{
+			TwoDegreeRotation(node, main_rotation);
+			pivot = OneDegreeRotation(node, main_rotation);
+		}
+		
+
+	}
+	else if (main_rotation < -1)
+	{
+		main_rotation = LEFT;
+		small_rotation = GetDifferenceIMP(node->children[main_rotation]);
+		if (small_rotation <= 0)
+		{
+			pivot = OneDegreeRotation(node, main_rotation);
+		}
+		else
+		{
+			TwoDegreeRotation(node, main_rotation);
+			pivot = OneDegreeRotation(node, main_rotation);
+		}
+
+	}
+	else
+	{
+		return node;
+	}
+	/*
+	diff = GetDifferenceIMP(node->children[diff]);
+	if (diff >= 0)
+	{
+		pivot = OneDegreeRotation(node, diff);
+	}
+	else
+	{
+		pivot = TwoDegreeRotation(node, GetOppositeIMP(diff));
+		pivot = OneDegreeRotation(node, diff);
+	}
+	*/
+	return pivot;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
