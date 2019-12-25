@@ -1,36 +1,37 @@
  /********************************************
 *	Author : Maoz Roytman			
-*	Reviewer : 	
+*	Reviewer : 	Tamir Dayan
 *	calc					
-*	Date: Tue Dec 17 17:23:22 IST 2019		                
+*	Date: Tue Dec 22 2019
 *																				
 ********************************************/
 
 #include <stdlib.h> /*MALLOCING*/
 #include <assert.h> /*asserting*/
-#include <stdio.h>
-#include <math.h>
+#include <math.h> /*pow*/
+#include <string.h>
 
 #include "calc.h"
 #include "../stack/stack.h"
 
 #define SIZE_OF_STACK 30
 
-typedef enum states{WAIT_FOR_NUM = 0,
-					WAIT_FOR_OP = 1,
-					ERROR = 2} states;
+typedef enum states
+{
+	WAIT_FOR_NUM = 0,
+	WAIT_FOR_OP = 1,
+	ERROR = 2
+}states;
 
 typedef status_t (*func)(void *exp);
-
 static status_t ErrorIMP(void *exp);
 static status_t PushToNumIMP(void *exp);
 static status_t PushToOPIMP(void *exp);
 static status_t PushToOPNoPrecedenceIMP(void *exp);
 static status_t EndIMP(void *exp);
-static status_t PushCloseParanIMP(void *exp);
+static status_t PushCloseParanthesisIMP(void *exp);
 
 typedef double (*calc_func)(double num1, double num2, status_t *status);
-
 static double AdditionIMP(double num1, double num2, status_t *status);
 static double MultiplyIMP(double num1, double num2, status_t *status);
 static double SubtractIMP(double num1, double num2, status_t *status);
@@ -38,7 +39,7 @@ static double DivisionIMP(double num1, double num2, status_t *status);
 static double PowerIMP(double num1, double num2, status_t *status);
 
 static status_t PerformCalcAndPushToStackIMP(char op);
-static void IsParanthesisValidIMP(char *exp);
+static void AreParanthesisValidIMP(char *exp);
 
 typedef struct op_struct
 {
@@ -52,6 +53,11 @@ typedef struct state_and_func
 	states next_state;
 }state_and_func;
 
+stack_t *num_stack = NULL;
+stack_t *op_stack = NULL;
+
+states current_state;
+status_t current_status;
 
 #define FIVE_NULL {NULL,0}, {NULL,0}, {NULL,0}, {NULL,0}, {NULL,0}
 #define TEN_NULL FIVE_NULL, FIVE_NULL
@@ -69,11 +75,6 @@ typedef struct state_and_func
 #define FiftyErrorFunc TwentryErrorFunc TwentryErrorFunc TenErrorFunc
 #define FortyFiveErrorFunc TwentryErrorFunc TwentryErrorFunc FiveErrorFunc
 
-stack_t *num_stack = NULL;
-stack_t *op_stack = NULL;
-states current_state;
-status_t current_status;
-
 state_and_func ASCII[3][255] = {{TwentryErrorFunc TwentryErrorFunc  /*0-39*/
 					{PushToOPNoPrecedenceIMP, WAIT_FOR_NUM}, /*40 '(' */
 					{ErrorIMP, ERROR}, {ErrorIMP, ERROR}, /*41-42*/
@@ -85,7 +86,7 @@ state_and_func ASCII[3][255] = {{TwentryErrorFunc TwentryErrorFunc  /*0-39*/
 					TwentryErrorFunc TwentryErrorFunc FiveErrorFunc /*210-255*/
 					},{ 
 				 	{EndIMP, WAIT_FOR_NUM}, TwentryErrorFunc TwentryErrorFunc /*0-40*/ 
-					{PushCloseParanIMP, WAIT_FOR_OP}, /*41 ')'*/
+					{PushCloseParanthesisIMP, WAIT_FOR_OP}, /*41 ')'*/
 					{PushToOPIMP, WAIT_FOR_NUM}, /* 42 '*'*/
 					{PushToOPIMP, WAIT_FOR_NUM}, {ErrorIMP, ERROR}, /*43-34 '+'*/
 					{PushToOPIMP, WAIT_FOR_NUM}, {ErrorIMP, ERROR}, /*45-46 '-'*/
@@ -103,42 +104,31 @@ op_struct_t OP_FUNCS[55] = {{NULL,0}, {NULL,0}, {MultiplyIMP, 3},
 							{NULL,0}, {DivisionIMP, 3}, FORTY_FIVE_NULL, 
 							{NULL, 0}, {PowerIMP, 4}};
 							
-					
-typedef union input
-{
-	double num;
-	char op;
-}input_t;	
-
-typedef struct tagged_union
-{
-	input_t input;
-	int flag;
-} t_union;
-					
-							
 status_t Calc(const char *exp, double *res)
 {
 	char dummy = ']';	
 	char prev_char = 0;
 	double num = 0;
+	size_t len = strlen(exp);
+	assert(exp);
+	assert(res);
 	
 	current_status = SUCCESS;
 	current_state = WAIT_FOR_NUM;
 	
-	num_stack = StackCreate(SIZE_OF_STACK, sizeof(double));
+	num_stack = StackCreate(len, sizeof(double));
 	if (NULL == num_stack)
 	{
 		return ALLOC_FAIL;
 	}
-	op_stack = StackCreate(SIZE_OF_STACK, sizeof(char));
+	op_stack = StackCreate(len, sizeof(char));
 	if (NULL == op_stack)
 	{
+		StackDestroy(num_stack);
 		return ALLOC_FAIL;
 	}
 	
-	
-	IsParanthesisValidIMP((char *)exp);
+	AreParanthesisValidIMP((char *)exp);
 	StackPush(op_stack, &dummy);
 	
 	while (current_status == SUCCESS && *(char*)exp != '\0')
@@ -162,7 +152,7 @@ status_t Calc(const char *exp, double *res)
 		{
 			current_status = ASCII[current_state][(int)prev_char].action_func((char *)exp);
 			++exp;
-		}		
+		}
 		current_state = ASCII[current_state][(int)prev_char].next_state;
 	}
 	if (current_status == SUCCESS)
@@ -176,17 +166,19 @@ status_t Calc(const char *exp, double *res)
 	
 	return current_status;
 }
-static status_t PushCloseParanIMP(void *exp)
+static status_t PushCloseParanthesisIMP(void *exp)
 {
 	char prev_op = 0;
 	status_t status = SUCCESS;
 	
 	(void) exp;
 	for (prev_op = *(char*)StackPeek(op_stack); 
-		prev_op != '('; StackPop(op_stack), prev_op = *(char*)StackPeek(op_stack))
+		prev_op != '(';
+		StackPop(op_stack), prev_op = *(char*)StackPeek(op_stack))
 	{
 		status = PerformCalcAndPushToStackIMP(prev_op);
 	}
+	
 	StackPop(op_stack);
 	
 	return status;
@@ -209,7 +201,6 @@ static status_t PushToNumIMP(void *exp)
 	return SUCCESS;
 }
 
-
 static status_t PushToOPNoPrecedenceIMP(void *exp)
 {
 	StackPush(op_stack, (char*)exp);
@@ -223,15 +214,14 @@ static status_t PushToOPIMP(void *exp)
 	status_t status = SUCCESS;
 	
 	while ((OP_FUNCS[*	(char *)exp-'('].table <= 
-		OP_FUNCS[(int)previous_operation-'('].table) &&
-		status == SUCCESS)
+			OP_FUNCS[(int)previous_operation-'('].table) &&
+			status == SUCCESS)
 	{
 		status = PerformCalcAndPushToStackIMP(previous_operation);
 		StackPop(op_stack);
 		previous_operation = *(char*)StackPeek(op_stack);
-
 	}
-
+	
 	StackPush(op_stack, (char*)exp);
 	
 	return status;
@@ -262,7 +252,6 @@ static status_t EndIMP(void *exp)
 	return status;
 }
 
-
 static double AdditionIMP(double num1, double num2, status_t *status)
 {
 	(void) status;
@@ -291,6 +280,7 @@ static double DivisionIMP(double num1, double num2, status_t *status)
 
 	return num1 / num2;
 }
+
 static double PowerIMP(double num1, double num2, status_t *status)
 {
 	if ((num1 == 0) && (num2 == 0))
@@ -302,7 +292,6 @@ static double PowerIMP(double num1, double num2, status_t *status)
 	return pow(num1, num2);
 }
 
-
 static status_t PerformCalcAndPushToStackIMP(char op)
 {
 	double *top = NULL;
@@ -312,33 +301,36 @@ static status_t PerformCalcAndPushToStackIMP(char op)
 	
 	bottom = StackPeek(num_stack);
 	StackPop(num_stack);
-	
 	top = StackPeek(num_stack);
 	StackPop(num_stack);
 	
 	result = OP_FUNCS[(int)op-'('].func(*top, *bottom, &status);
-	
 	StackPush(num_stack,&result);
 	
 	return status;
 }
 
-
-static void IsParanthesisValidIMP(char *exp)
+static void AreParanthesisValidIMP(char *exp)
 {
 	stack_t *paran_stack = (stack_t*)StackCreate(SIZE_OF_STACK, sizeof(char));
-	while(*exp != '\0')
+	if (paran_stack == NULL)
 	{
-		if (*exp == '(')
+		current_status = ALLOC_FAIL;
+		return;
+	}
+	while('\0' != *exp)
+	{
+		if ('(' == *exp)
 		{
 			StackPush(paran_stack, exp);
 		}
-		else if (*exp == ')')
+		else if (')' == *exp)
 		{
 			if(StackIsEmpty(paran_stack))
 			{
 				current_status = INVALID_EXP;
 				StackDestroy(paran_stack);
+				
 				return;
 			}
 			else
@@ -348,6 +340,7 @@ static void IsParanthesisValidIMP(char *exp)
 		}
 		++exp;
 	}
+	
 	if (StackIsEmpty(paran_stack))
 	{
 		current_status = SUCCESS;
@@ -361,5 +354,3 @@ static void IsParanthesisValidIMP(char *exp)
 	
 	StackDestroy(paran_stack);
 }
-
-
