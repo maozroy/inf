@@ -8,6 +8,7 @@
 
 #include <stdlib.h> /*MALLOCING*/
 #include <assert.h> /*asserting*/
+#include <sys/mman.h>
 #include <math.h>
 #include "../dllist/dllist.h"
 #include "hashtable.h"
@@ -132,10 +133,10 @@ int HashIsEmpty(const hash_table_t *hash_table)
 	{
 		if (1 == DLListIsEmpty(hash_table->table[i]))
 		{
-			return 0;
+			return 1;
 		}
 	}
-	return 1;
+	return 0;
 }
 
 size_t HashSize(const hash_table_t *hash_table)
