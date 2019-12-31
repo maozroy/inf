@@ -1,6 +1,6 @@
  /********************************************
 *	Author : Maoz Roytman		
-*	Reviewer : 	
+*	Reviewer : 	Erez Barr
 *	avl					
 *	Date: Mon Dec 23 17:52:33 IST 2019		                
 *																				
@@ -33,6 +33,12 @@ typedef enum direction
 	BOTH = 2
 }direction;
 
+enum status
+{
+	SUCCESS = 0,
+	FAILURE = 1
+};
+
 enum func_result
 {
 	MATCH = 0,
@@ -42,27 +48,26 @@ enum func_result
 
 static direction GetDirectionIMP(direction dir);
 static direction GetOppositeIMP(direction);
-
-static avl_node_t *RecInsertIMP(avl_node_t **node, comparison_func_t func, void *data);
+static avl_node_t *RecInsertIMP(avl_node_t **node, 
+								comparison_func_t func, void *data);
 static avl_node_t **GetRootAdrsIMP(avl_t *tree);
-
 static void UpdateHeightIMP(avl_node_t *node);
 static void RecDestroyIMP(avl_node_t *node);
 static avl_node_t *CreateNodeIMP(void *data);
 static void RecSizeIMP(avl_node_t *node, size_t *size);
 static size_t MaxIMP(size_t a, size_t b);
 static int GetNumOfKidsIMP(avl_node_t *node);
-static avl_node_t *RecFindIMP(avl_node_t *node, comparison_func_t func, void *data);
+static avl_node_t *RecFindIMP(avl_node_t *node, comparison_func_t func, 
+							void *data);
 static int RecForEachIMP(avl_node_t *node, action_func_t func, void* param);
 static void RecRemoveIMP(avl_node_t *node, void *data, avl_t *tree);
-static void ConnectToLeftChildIMP(avl_node_t *node, avl_node_t *node_to_connect);
+static void ConnectToLeftChildIMP(avl_node_t *node, 
+									avl_node_t *node_to_connect);
 static direction IsMyChildTheChosenOneIMP
 		(avl_node_t *node, void *data, comparison_func_t func);
-static void RemoveByParentIMP(avl_node_t *node_to_remove,enum direction direction);
+static void RemoveByParentIMP(avl_node_t *node_to_remove,direction direction);
 static void RemoveRootIMP(avl_node_t *node, avl_t *tree);
 static size_t GetHeightIMP(avl_node_t *node);
-
-
 /*balancing funcs*/
 static avl_node_t *AVLBalanceIMP(avl_node_t *node);
 static void TwoDegreeRotationIMP(avl_node_t *node, int dir);
@@ -97,10 +102,10 @@ int AVLInsert(avl_t *tree, void *data)
 	new_node = RecInsertIMP(root, tree -> comparison_func, data);
 	if (NULL == new_node)
 	{
-		return 1;
+		return FAILURE;
 	}
 	
-	return 0;
+	return SUCCESS;
 }
 
 size_t AVLSize(const avl_t *tree)
@@ -229,7 +234,7 @@ static avl_node_t *OneDegreeRotationIMP(avl_node_t *node, int dir)
 	avl_node_t *pivot = node -> children[dir];
 	
 	node->children[dir] = node -> children[dir] ->
-	children[GetOppositeIMP(dir)];					
+								children[GetOppositeIMP(dir)];					
 	pivot -> children[GetOppositeIMP(dir)] = node;
 	UpdateHeightIMP(node);
 	
@@ -239,8 +244,8 @@ static avl_node_t *OneDegreeRotationIMP(avl_node_t *node, int dir)
 static void TwoDegreeRotationIMP(avl_node_t *node, int dir)
 {
 	avl_node_t *pivot = node -> children[dir];
-	avl_node_t *node_to_connect = node -> children[dir] -> children[GetOppositeIMP(dir)];
-	
+	avl_node_t *node_to_connect = node -> children[dir] -> 
+									children[GetOppositeIMP(dir)];
 	node->children[dir] = node_to_connect;
 	pivot->children[GetOppositeIMP(dir)] = node_to_connect->children[dir];
 	node_to_connect->children[dir] = pivot;
@@ -305,7 +310,6 @@ static avl_node_t *AVLBalanceIMP(avl_node_t *node)
 	return pivot;
 }
 
-
 static direction GetDirectionIMP(direction dir)
 {
 	if ((direction)GO_LEFT == dir)
@@ -320,7 +324,6 @@ static avl_node_t **GetRootAdrsIMP(avl_t *tree)
 {
 	return &(tree->root);
 }
-
 
 static void UpdateHeightIMP(avl_node_t *node)
 {
@@ -352,21 +355,15 @@ static void UpdateHeightIMP(avl_node_t *node)
 
 static void RecSizeIMP(avl_node_t *node, size_t *size)
 {	
-	(*size) += 1;
-	
-	switch (GetNumOfKidsIMP(node))
+	if (NULL == node)
 	{
-		case LEFT:
-			RecSizeIMP(node->children[LEFT], size);
-			break;
-		case RIGHT:
-			RecSizeIMP(node->children[RIGHT], size);
-			break;
-		case BOTH:
-			RecSizeIMP(node->children[LEFT], size);
-			RecSizeIMP(node->children[RIGHT], size);
-			break;
+		return;
 	}
+	
+	(*size) += 1;
+	RecSizeIMP(node->children[LEFT], size);
+	RecSizeIMP(node->children[RIGHT], size);
+
 }
 
 static int GetNumOfKidsIMP(avl_node_t *node)
@@ -394,7 +391,8 @@ static int GetNumOfKidsIMP(avl_node_t *node)
 	}
 }
 
-static avl_node_t *RecFindIMP(avl_node_t *node, comparison_func_t func, void *data)
+static avl_node_t *RecFindIMP(avl_node_t *node, 
+								comparison_func_t func, void *data)
 {
 	int cmp_result = 0;
 	
@@ -407,10 +405,6 @@ static avl_node_t *RecFindIMP(avl_node_t *node, comparison_func_t func, void *da
 	if (MATCH == cmp_result)
 	{
 		return node;
-	}
-	else if (NULL == node->children[GetDirectionIMP(cmp_result)])
-	{
-		return NULL;
 	}
 	
 	return RecFindIMP(node->children[GetDirectionIMP(cmp_result)], func, data);
@@ -481,7 +475,8 @@ static void RecRemoveIMP(avl_node_t *node, void *data, avl_t *tree)
 		direction = GetDirectionIMP(cmp_result);
 		RecRemoveIMP(node -> children[direction],data, tree);
 		
-		node -> children[direction] = AVLBalanceIMP(node -> children[direction]);
+		node -> children[direction] = AVLBalanceIMP
+										(node -> children[direction]);
 		UpdateHeightIMP(node);
 	}
 	UpdateHeightIMP(node);
@@ -506,7 +501,8 @@ static void RemoveRootIMP(avl_node_t *node, avl_t *tree)
 			break;
 			
 		case BOTH:
-			ConnectToLeftChildIMP(node->children[RIGHT], node -> children[LEFT]);
+			ConnectToLeftChildIMP(node->children[RIGHT], 
+									node -> children[LEFT]);
 			tree -> root = node -> children[RIGHT];
 			break;
 	}
@@ -559,16 +555,13 @@ static int RecForEachIMP(avl_node_t *node, action_func_t func, void* param)
 	
 	if (NULL == node)
 	{
-		return 0;
+		return SUCCESS;
 	}
 
 	RecForEachIMP(node -> children[LEFT], func, param);
-	if (NULL == node)
-	{
-		return 0;
-	}
+
 	func_res = func(node -> data, param);
-	if (MATCH != func_res)
+	if (SUCCESS != func_res)
 	{
 		return func_res;
 	}
@@ -585,10 +578,6 @@ static avl_node_t *RecInsertIMP(avl_node_t **node,
 	if (NULL == *node)
 	{
 		*node = CreateNodeIMP(data);
-		if (NULL == node)
-		{
-			return NULL;
-		}
 	}
 	else
 	{

@@ -10,31 +10,34 @@
 #include <stdlib.h> /* malloc */
 #include <stdio.h> /* printf */
 #include <time.h> /*clock*/
+#include "sorting.h"
 
+#define SIZEOFARRAY 100
+#define ITERATIONS 1000
 
-#define SIZEOFARRAY 200
-#define ITERATIONS 200
-
-static void ShortTest();
+/*static void ShortTest();
 static void LongTest();
 static void TimeTestQueueSort();
 static void TimeTestBubbleSort();
 static void TimeTestInsertionSort();
-static void TimeTestSelectionSort();
+static void TimeTestSelectionSort();*/
+static void TimeTestMergeSort();
 int CompareFunc(const void *x, const void *y);
 /*************************************************/
 int main ()
 {
-	ShortTest(); 
+	/*ShortTest(); 
 	LongTest(); 	
 	TimeTestQueueSort();
 	TimeTestBubbleSort();
 	TimeTestInsertionSort();
-	TimeTestSelectionSort();
+	TimeTestSelectionSort();*/
+	TimeTestMergeSort();
 	
 	return (0);
 }
 /*************/
+/*
 static void ShortTest()
 {
 	int arr1[] = {9,8,7,6,5,4,3,2,1,0};
@@ -92,7 +95,9 @@ static void ShortTest()
 
 	RUN_TEST(test_ok, "Selection Sort");
 }
+*/
 /*************/
+/*
 static void LongTest()
 {
 	int *my_array = (int*)malloc(SIZEOFARRAY);
@@ -170,12 +175,13 @@ static void LongTest()
 		}
 	}
 
-	RUN_TEST(select_ok, "Selection Sort - Long")
+	RUN_TEST(select_ok, "Selection Sort - Long");
 	
 	free(my_array);
-/*	free(qs_array);*/
-}
+	free(qs_array);
+}*/
 /*************/
+/*
 static void TimeTestBubbleSort()
 {
 	int *array = (int*)malloc(SIZEOFARRAY / 2);
@@ -200,7 +206,9 @@ static void TimeTestBubbleSort()
 				ITERATIONS, SIZEOFARRAY, how_much_time * 1000);
 	free(array);
 }
+*/
 /*************/
+/*
 static void TimeTestInsertionSort()
 {
 	int *array = (int*)malloc(SIZEOFARRAY / 2);
@@ -225,7 +233,9 @@ static void TimeTestInsertionSort()
 				ITERATIONS, SIZEOFARRAY, how_much_time * 1000);
 	free(array);
 }
+*/
 /*************/
+/*
 static void TimeTestSelectionSort()
 {
 	int *array = (int*)malloc(SIZEOFARRAY / 2);
@@ -278,8 +288,31 @@ int CompareFunc(const void *x, const void *y)
 {
 	return (*(int*)x > *(int*)y);
 }
+*/
+static void TimeTestMergeSort()
+{
+	int *array = (int*)calloc(SIZEOFARRAY, 4);
+	int i = 0;
+	int j = 0;
+	clock_t time = clock();
+	double how_much_time = 0;
 
+	for (i = 0; i < ITERATIONS; ++ i) 
+	{
+		for (j = 0; j < SIZEOFARRAY; ++ j)
+		{
+			*(array + j) = rand() % 1000;
+		}
+		
+		MergeSort(array, SIZEOFARRAY);			
+	}
 
+	how_much_time = (double)(clock() - time) / CLOCKS_PER_SEC;
+
+	printf("DONE %d INSERTIONS SORT FOR %d ARRAYS IN %f ms \n", 
+				ITERATIONS, SIZEOFARRAY, how_much_time * 1000);
+	free(array);
+}
 
 
 
