@@ -8,23 +8,30 @@
 
 #include <stdlib.h> /*MALLOCING*/
 #include <assert.h> /*asserting*/
-#include <unistd.h>
+#include <unistd.h> /* ssize_t */
 
-
-#include "heap.h"
-#include "heapify.h"
-#include "../vector/vector.h"
+#include "heap.h" 
+#include "heapify.h" /*heapifying*/
+#include "../vector/vector.h" /*engine*/
 
 #define START_CAPACITY (1)
 #define THE_VECTOR (heap -> vector)
 #define ROOT (0)
+#define LAST_INDEX (VectorSize(THE_VECTOR) - 1)
+#define ELEM_SIZE (sizeof(void *))
+#define NOT_FOUND -1
+
 typedef enum status
 {
 	SUCCESS = 0,
 	FAIL = 1
 }status_t;
 
-
+enum is_before
+{
+	IS_BEFORE = 1,
+	IS_NOT_BEFORE = 0
+};
 
 struct heap
 {
@@ -34,9 +41,8 @@ struct heap
 };
 
 static void SwapElementIMP(void **data1, void **data2);
-int HeapComparisonIMP(const void *new_data, const void *src_data, void *compare_param);
-void PrintArrayIMP (heap_t *heap);
-
+int HeapComparisonIMP(const void *new_data, const void *src_data, 
+						void *compare_param);
 
 heap_t *HeapCreate(comparison_t comparison_func, void *comparison_param)
 {
@@ -51,7 +57,7 @@ heap_t *HeapCreate(comparison_t comparison_func, void *comparison_param)
 		return NULL;
 	}
 	
-	array = VectorCreate(START_CAPACITY, sizeof(void *));
+	array = VectorCreate(START_CAPACITY, ELEM_SIZE);
 	if (NULL == array)
 	{
 		return NULL;
@@ -66,22 +72,26 @@ heap_t *HeapCreate(comparison_t comparison_func, void *comparison_param)
 
 void HeapDestroy(heap_t *heap)
 {
+	assert(heap);
+	
 	VectorDestroy(THE_VECTOR);
-
 	heap -> vector = NULL;
 	heap -> comparison_func = NULL;
-	heap -> param = NULL;	
-		free(heap);
+	heap -> param = NULL;
+	free(heap);
 }
 
 int HeapPush(heap_t *heap, void *data)
 {
+	assert(data);
+	assert(heap);
+
 	if (VectorPushBack(THE_VECTOR, &data) == FAIL)
 	{
 		return FAIL;
 	}
-	HeapifyUp(VectorGetItemAddress(THE_VECTOR, 0), VectorSize(THE_VECTOR), 
-				sizeof(void *), VectorSize(THE_VECTOR) - 1, 
+	HeapifyUp(VectorGetItemAddress(THE_VECTOR, ROOT), VectorSize(THE_VECTOR), 
+				ELEM_SIZE, LAST_INDEX, 
 				HeapComparisonIMP, heap);
 
 	return SUCCESS;
@@ -89,32 +99,40 @@ int HeapPush(heap_t *heap, void *data)
 
 void *HeapPeek(const heap_t *heap)
 {
-	return *(char **)VectorGetItemAddress(THE_VECTOR, 0);
+	assert(heap);
+
+	return *(void **)VectorGetItemAddress(THE_VECTOR, ROOT);
 
 }
 
-int HeapComparisonIMP(const void *new_data, const void *src_data, void *compare_param)
+int HeapComparisonIMP(const void *new_data, const void *src_data, 
+						void *compare_param)
 {
 	heap_t *heap = (void *)compare_param;
 	comparison_t func = heap -> comparison_func;
-	return (func(*(void **)new_data, *(void **)src_data, heap -> param));
-
+	
+	return (func(*(void **)new_data,
+				 *(void **)src_data,
+				 heap -> param));
 }
-
 
 void HeapPop(heap_t *heap)
 {
-	void *root = VectorGetItemAddress(THE_VECTOR, 0);
-	void *last_element = VectorGetItemAddress(THE_VECTOR, VectorSize(THE_VECTOR) - 1);
+	void *root = NULL;
+	void *last_element = NULL;
+	
+	assert(heap);
+	
+	root = VectorGetItemAddress(THE_VECTOR, ROOT);
+	last_element = VectorGetItemAddress(THE_VECTOR, LAST_INDEX);
 	
 	SwapElementIMP(root, last_element);
 	VectorPopBack(THE_VECTOR);	
 	
-	HeapifyDown(VectorGetItemAddress(THE_VECTOR, 0), VectorSize(THE_VECTOR), 
-				sizeof(void *), 0, 
-				HeapComparisonIMP, (void *)heap);
+	HeapifyDown(VectorGetItemAddress(THE_VECTOR, ROOT), 
+				VectorSize(THE_VECTOR), ELEM_SIZE, ROOT, 
+				HeapComparisonIMP, heap);
 }
-
 
 void SwapElementIMP(void **data1, void **data2)
 {
@@ -126,100 +144,88 @@ void SwapElementIMP(void **data1, void **data2)
 
 size_t HeapSize(const heap_t *heap)
 {
+	assert(heap);
+
 	return (VectorSize(THE_VECTOR));
 }
 
 int HeapIsEmpty(const heap_t *heap)
 {
-	return (VectorSize(THE_VECTOR) == 0);
+	assert(heap);
+
+	return (VectorSize(THE_VECTOR) == SUCCESS);
 }
 
-void PrintArrayIMP (heap_t *heap)
-{
-	char *arr = VectorGetItemAddress(THE_VECTOR, 0);
-	size_t size = VectorSize(THE_VECTOR);
-	size_t i = 0;
-	
-	for (i = 0; i < size ; i++)
-	{
-		printf("%d ",**(int**)arr);
-		arr += 8;
-	}
-
-}
-static ssize_t FindIndexToRemoveIMP(d_vector_t *vector, is_match_t func, void *param)
+static ssize_t FindIndexToRemoveIMP(d_vector_t *vector, 
+									is_match_t func, void *param)
 {
 	ssize_t i = 0;
-	ssize_t size = VectorSize(vector);
-	ssize_t result = -1;
+	ssize_t size = 0;
+	ssize_t result = NOT_FOUND;
+	
+	assert(vector);
+	assert(func);
+	
+	size = VectorSize(vector);
 	for (i = 0 ; i < size ; ++i)
 	{
-		if (func(*(char **)VectorGetItemAddress(vector, i), param) == 1)
+		if (func(*(char **)VectorGetItemAddress(vector, i), param) == IS_BEFORE)
 		{
 			result = i;
 			break;
 		}
 	}
+	
 	return result;
 }
 
-int HeapRemove(heap_t *heap, is_match_t is_match_func, void *param)
+void *HeapRemove(heap_t *heap, is_match_t is_match_func, void *param)
 {
-
 	ssize_t index_to_remove = 0;
 	void *elem_to_remove = NULL;
-	void *last_element = VectorGetItemAddress(THE_VECTOR, VectorSize(THE_VECTOR) - 1);
+	void *last_element = NULL;
 	void *parent = NULL;
+	void *data_to_return = NULL;
+	void *root = NULL;
+	
+	assert(heap);
+	assert(is_match_func);
+	
 	index_to_remove = FindIndexToRemoveIMP(THE_VECTOR, is_match_func, param);
-	if (-1 == index_to_remove)
+
+	if (NOT_FOUND == index_to_remove)
 	{	
-		return FAIL;
+		return NULL;
 	}
+	elem_to_remove = VectorGetItemAddress(THE_VECTOR, index_to_remove);
+	data_to_return = *(void **)elem_to_remove;		
+	
 	if (index_to_remove == ROOT)
 	{
 		HeapPop(heap);
 	}
 	else
 	{
-		elem_to_remove = VectorGetItemAddress(THE_VECTOR, index_to_remove);
 		parent = VectorGetItemAddress(THE_VECTOR, index_to_remove / 2);
-		
+		last_element = VectorGetItemAddress(THE_VECTOR, LAST_INDEX);
+
 		SwapElementIMP(elem_to_remove, last_element);
 		VectorPopBack(THE_VECTOR);
+		root = VectorGetItemAddress(THE_VECTOR, ROOT);
 		
-		if (HeapComparisonIMP(elem_to_remove, parent, heap) == 1)
+		if (HeapComparisonIMP(elem_to_remove, parent, heap) == IS_BEFORE)
 		{
-			HeapifyUp(VectorGetItemAddress(THE_VECTOR, 0), VectorSize(THE_VECTOR), 
-				sizeof(void *), index_to_remove, 
+			HeapifyUp(root, VectorSize(THE_VECTOR), 
+				ELEM_SIZE, index_to_remove, 
 				HeapComparisonIMP, heap);
 		}
 		else
 		{
-			HeapifyDown(VectorGetItemAddress(THE_VECTOR, 0), VectorSize(THE_VECTOR), 
-				sizeof(void *), index_to_remove, 
+			HeapifyDown(root, VectorSize(THE_VECTOR), 
+				ELEM_SIZE, index_to_remove, 
 				HeapComparisonIMP, heap);
 		}
-	
 	}
 
-				
-	return SUCCESS;
+	return data_to_return;
 }
-
-
-
-void HeapifyDown(void *arr, 
-				  size_t arr_size, 
-				  size_t elem_size, 
-			      size_t index_of_heapify, 
-			      comparison_t func, 
-			      void *compare_param);
-
-
-
-
-
-
-
-
-

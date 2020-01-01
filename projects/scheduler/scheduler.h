@@ -9,7 +9,7 @@
 #define ILRD_SCHEDULER_H
 #include <stddef.h> /* size_t */
 #include <time.h>   /* time_t */
-#include "uid.h"
+#include "../../ds/uid/uid.h"
 
 enum result_status
 {

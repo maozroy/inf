@@ -91,11 +91,11 @@ void CopyVoidToVoid(void *src, void *dst, size_t n)
 void VectorDestroy(d_vector_t *vector)
 {
 	assert(vector);
-	
+
 	free(vector->head);
-	vector->head = NULL;
+	/*vector->head = NULL;*/
+	
 	free(vector);
-	vector = NULL;
 }
 
 void VectorPopBack(d_vector_t *vector)
@@ -104,9 +104,8 @@ void VectorPopBack(d_vector_t *vector)
 
 	vector->size -= 1;
 	
-	if (vector->size < (0.25 * vector->capacity))
+	if (vector->size < (vector->capacity / 2))
 	{
-
 		VectorReserve(vector, (vector->capacity) / 2);
 	}
 	

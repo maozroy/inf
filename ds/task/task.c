@@ -26,7 +26,6 @@ task_t *TaskCreate(time_t interval,
 {
 	task_t *new_task = NULL;
 	
-	assert(action_func_param);
 
 	new_task = (task_t *)malloc(sizeof(task_t)); 
 	if (NULL == new_task)

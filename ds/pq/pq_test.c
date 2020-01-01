@@ -1,83 +1,226 @@
+#include <stdio.h> /* printf */
+#include <stdlib.h> /* malloc, free */
+#include <assert.h> /* assert */
+#include <string.h> /*strcmp*/
+
 #include "pq.h"
-#include <stdio.h>
 
-#define PRINT_TEST(test, name, num) \
-printf("Function: %-17sTest #%d  %s\n", \
-(name), (num), (test ? "\033[0;32mPassed\033[0m" : "\033[0;31mFailed\033[0m")) 
+#define RED "\x1b[31m"
+#define GREEN "\x1b[32m"
+#define RESET "\x1b[0m"
+#define TEST1(result1, result2)  (((result1) == (result2)) ? \
+ printf(GREEN"passed\n"RESET) : printf(RED"failed\n"RESET)) 
+#define TEST2(result) (result != NULL) ? \
+ printf(GREEN"passed\n"RESET) : printf(RED"failed\n"RESET) 
+#define UNUSED(x) ((void)(x))
 
-int MyIntCompare (const void *new_data, const void *src_data, void *param);
-void TestPQCreate(void);
-void TestPQInsert(void);
+void TestPQCreate();
+void TestPQEnqueue();
+void TestPQDequeue();
+void TestPQPeek();
+void TestPQIsEmpty();
+void TestPQSize();
+void TestPQClear();
+void TestPQErase();
 
+int CompareFunc(const void *new_data, const void *src_data, void *param);
+int IsMatch(const void *new_data, const void *param);
 
 int main()
 {
-	TestPQCreate();
-	TestPQInsert();
+	/*TestPQCreate();
+	TestPQEnqueue();
+	TestPQDequeue();
+	TestPQPeek();
+
+	TestPQSize();
+	TestPQClear();
+	TestPQErase();*/
+		TestPQIsEmpty();
+
 	return 0;
 }
 
-void TestPQCreate(void)
+void TestPQCreate()
 {
-	p_queue_t *my_pq = PQCreate(NULL, MyIntCompare);
-	PQDestroy(my_pq);
+
+ 	p_queue_t *pq = PQCreate(NULL, CompareFunc);
+ 	printf("TestPQCreate\n");
+ 	TEST2(pq);
+ 	TEST1(PQIsEmpty(pq), 1);
+	TEST1(PQSize(pq), 0);
+ 	PQDestroy(pq);
 }
 
-
-int MyIntCompare (const void *new_data, const void *src_data, void *param)
+void TestPQEnqueue()
 {
-	int new = *(int*)new_data;
-	int src = *(int*)src_data;
-	
-	int result = 0;
-	param = param;
-	
-	if (new >= src*10)
+	int param = 1;
+ 	p_queue_t *pq = PQCreate(&param, CompareFunc);
+	int data1 = 1;
+	int data2 = 2;
+	int data3 = 3;
+	int data4 = 4;
+ 	printf("TestPQEnqueue\n");
+	TEST1(0, PQEnqueue(pq, &data1));
+	TEST1(*(int*)PQPeek(pq), 1);
+	TEST1(0, PQEnqueue(pq, &data3));
+	TEST1(*(int*)PQPeek(pq), 3);
+	TEST1(0, PQEnqueue(pq, &data4));
+	TEST1(*(int*)PQPeek(pq), 4);
+	TEST1(0, PQEnqueue(pq, &data2));
+	TEST1(*(int*)PQPeek(pq), 4);
+	PQDestroy(pq);   
+}
+
+void TestPQDequeue()
+{
+ 	int param = 1;
+ 	p_queue_t *pq = PQCreate(&param, CompareFunc);
+	int data1 = 1;
+	int data2 = 2;
+	int data3 = 3;
+	int data4 = 4;
+ 	printf("TestPQDequeue\n");
+ 	PQEnqueue(pq, &data1);
+	PQEnqueue(pq, &data3);
+	PQEnqueue(pq, &data4);
+	PQEnqueue(pq, &data2);
+	PQDequeue(pq);
+	TEST1(*(int*)PQPeek(pq), 3);
+	PQDequeue(pq);
+	TEST1(*(int*)PQPeek(pq), 2);
+	PQDequeue(pq);
+	TEST1(*(int*)PQPeek(pq), 1);
+	PQDequeue(pq);
+	TEST1(PQIsEmpty(pq), 1);
+ 	PQDestroy(pq);
+}
+
+void TestPQPeek()
+{
+ 	int param = 1;
+ 	p_queue_t *pq = PQCreate(&param, CompareFunc);
+	int data1 = 43;
+	int data2 = 50;
+	int data3 = 12;
+	int data4 = 4;
+ 	printf("TestPQPeek\n");
+ 	PQEnqueue(pq, &data1);
+	PQEnqueue(pq, &data3);
+	PQEnqueue(pq, &data4);
+	PQEnqueue(pq, &data2);
+	PQDequeue(pq);
+	TEST1(*(int*)PQPeek(pq), 43);
+	PQDequeue(pq);
+	TEST1(*(int*)PQPeek(pq), 12);
+	PQDequeue(pq);
+	TEST1(*(int*)PQPeek(pq), 4);
+	PQDequeue(pq);
+	TEST1(PQIsEmpty(pq), 1);
+ 	PQDestroy(pq);
+}
+ 	
+void TestPQIsEmpty()
+{
+	int param = 1;
+ 	p_queue_t *pq = PQCreate(&param, CompareFunc);
+ 	int data1 = 43;
+ 	printf("TestPQIsEmpty\n");
+ 	TEST1(PQIsEmpty(pq), 1);
+ 	PQEnqueue(pq, &data1);
+	TEST1(PQIsEmpty(pq), 0);
+	/*PQDequeue(pq);*/
+	PQErase(&data1, pq, IsMatch);
+	TEST1(PQIsEmpty(pq), 1);
+	PQDestroy(pq);	
+}
+
+void TestPQSize()
+{
+ 	int param = 1;
+ 	p_queue_t *pq = PQCreate(&param, CompareFunc);
+	int data1 = 43;
+	int data2 = 50;
+	printf("TestPQSize\n");
+	TEST1(PQSize(pq), 0);
+	PQEnqueue(pq, &data1);
+	PQEnqueue(pq, &data2);
+	TEST1(PQSize(pq), 2);
+	PQDequeue(pq);
+	TEST1(PQSize(pq), 1);
+	PQDequeue(pq);
+	TEST1(PQSize(pq), 0);
+	PQDestroy(pq);
+}
+
+void TestPQClear()
+{
+  	int param = 1;
+ 	p_queue_t *pq = PQCreate(&param, CompareFunc);
+	int data1 = 43;
+	int data2 = 50;
+ 	printf("TestPQClear\n");
+ 	PQEnqueue(pq, &data1);
+	PQEnqueue(pq, &data2);
+ 	TEST1(PQSize(pq), 2);
+ 	PQClear(pq);
+ 	TEST1(PQSize(pq), 0);
+ 	TEST1(PQIsEmpty(pq), 1);
+	PQDestroy(pq);
+}
+
+void TestPQErase()
+{
+  	int param = 1;
+ 	p_queue_t *pq = PQCreate(&param, CompareFunc);
+ 	int data1 = 1;
+	int data2 = 2;
+	int data3 = 3;
+	int data4 = 4;
+ 	PQEnqueue(pq, &data1);
+	PQEnqueue(pq, &data3);
+	PQEnqueue(pq, &data4);
+	PQEnqueue(pq, &data2);
+ 	printf("TestPQErase\n");
+ 	TEST1(PQSize(pq), 4);
+ 	PQErase(&data3, pq, IsMatch);
+ 	TEST1(PQSize(pq), 3);
+ 	PQDestroy(pq);
+
+}
+
+int CompareFunc(const void *new_data, const void *src_data, void *param)
+{	
+	if (1 == *(int*) param)
 	{
-		result = 1;	
+		if (*(int*)new_data > *(int*)src_data)
+		{
+			return 1;
+		}
+		
+		else if (*(int*)new_data < *(int*)src_data)
+		{
+			return -1;
+		}
+	
+		return 0;
 	}
-	else if (new <= src*10)
+	/*
+	if (2 == *(int*)param)
 	{
-		result = -1;
-	}
-	return result;
+		if (*(int*)new_data > *(int*)src_data)
+		{
+			return 1;
+		}
 	
+		return 0;
+	}*/
+	
+	return 0;
 }
 
-void TestPQInsert(void)
+int IsMatch(const void *new_data, const void *param)
 {
-	int a = 1;
-	int b = 22;
-	int c = 5;
-	int d = 8721;
-	int e = 124;
-	int f = 896;
-	
-	p_queue_t *my_pq = PQCreate(NULL, MyIntCompare);
-	PQEnqueue(my_pq, &a);
-	PQEnqueue(my_pq, &b);
-	PQEnqueue(my_pq, &c);	
-	PQEnqueue(my_pq, &d);	
-	PQEnqueue(my_pq, &e);	
-	PQEnqueue(my_pq, &f);	
-	
-	printf("%ld",PQSize(my_pq));
-	
-	
-	PQDestroy(my_pq);
+	return (*(int*)new_data == *(int*)param);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

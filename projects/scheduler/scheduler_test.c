@@ -4,7 +4,7 @@
 #include <string.h> /*strcmp*/
 #include <unistd.h>
 
-#include "task.h"
+#include "../../ds/task/task.h"
 #include "scheduler.h"
 
 #define RED "\x1b[31m"
@@ -45,7 +45,7 @@ typedef struct remove_arguments
 
 int main()
 {
-	/*TestSchedCreate();
+	TestSchedCreate();
 	TestSchedAdd();
 	TestSchedClear();
 	TestSchedRemove();
@@ -53,8 +53,8 @@ int main()
 	TestSchedSize();
 	TestSchedIsEmpty();
 	TestSchedStop();
-		TestClearFile();
-	TestSizeFile();*/
+		/*TestClearFile();*/
+	TestSizeFile();
 	TestIsEmptyFile();
 
 	

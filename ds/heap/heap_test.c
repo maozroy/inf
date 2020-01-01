@@ -21,6 +21,7 @@ void TestCreate()
 {
 	int arr[11] = {50,40,30,18,36,25,28,5,6,32,33};
 	size_t i = 0;
+	
 	heap_t *heap = HeapCreate(my_comparison, NULL);
 		printf("is it empty? is %d\n",HeapIsEmpty(heap));
 	for (i = 0 ; i < 11 ; ++i)
@@ -30,18 +31,18 @@ void TestCreate()
 			printf("END\n");
 	}
 				printf("Remove::\n");
-	HeapRemove(heap, match, &arr[5] );
+	printf("%d\n",*(int*)HeapRemove(heap, match, &arr[5]));
 	PrintArrayIMP(heap);
 				printf("END\n");
-	/*
-	for (i = 0 ; i < 10 ; ++i)
+	
+	for (i = 0 ; i < 11 ; ++i)
 	{
-	HeapPop(heap);
+	HeapRemove(heap, match, &arr[i]);
 			PrintArrayIMP(heap);
 			printf("END\n");
 	}
-*/
-	printf("first peek is %d\n",*(int*)HeapPeek(heap));
+
+	/*printf("first peek is %d\n",*(int*)HeapPeek(heap));*/
 	printf("size is %ld\n",HeapSize(heap));
 	printf("is it empty? is %d\n",HeapIsEmpty(heap));
 	HeapDestroy(heap);

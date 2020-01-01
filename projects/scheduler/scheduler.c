@@ -10,9 +10,9 @@
 #include <assert.h> /*asserting*/
 #include <unistd.h> /*sleep*/
 
-#include "uid.h"
-#include "pq.h"
-#include "task.h"
+#include "../../ds/uid/uid.h"
+#include "../../ds/pq/pq.h"
+#include "../../ds/task/task.h"
 #include "scheduler.h"
 
 struct scheduler
