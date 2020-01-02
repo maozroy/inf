@@ -60,6 +60,7 @@ heap_t *HeapCreate(comparison_t comparison_func, void *comparison_param)
 	array = VectorCreate(START_CAPACITY, ELEM_SIZE);
 	if (NULL == array)
 	{
+		free(heap);
 		return NULL;
 	}
 	
@@ -100,7 +101,10 @@ int HeapPush(heap_t *heap, void *data)
 void *HeapPeek(const heap_t *heap)
 {
 	assert(heap);
-
+	if (HeapIsEmpty(heap))
+	{
+		return NULL;
+	}
 	return *(void **)VectorGetItemAddress(THE_VECTOR, ROOT);
 
 }
@@ -153,7 +157,7 @@ int HeapIsEmpty(const heap_t *heap)
 {
 	assert(heap);
 
-	return (VectorSize(THE_VECTOR) == SUCCESS);
+	return (VectorSize(THE_VECTOR) == 0);
 }
 
 static ssize_t FindIndexToRemoveIMP(d_vector_t *vector, 

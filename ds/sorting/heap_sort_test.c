@@ -3,6 +3,7 @@
 #include <stdlib.h> /* malloc, free */
 #include <assert.h> /* assert */
 #include <time.h>
+#include <unistd.h>
 
 #include "sorting.h"
 
@@ -14,6 +15,8 @@
 #define TEST2(result) (result != NULL) ? \
  printf(GREEN"passed\n"RESET) : printf(RED"failed\n"RESET) 
  #define UNUSED(x) ((void)(x))
+ 
+ #define NUM_OF_ITER 20
  
 void TestHeapSort();
 int CompareFunc(const void *a, const void *b) ;
@@ -28,6 +31,7 @@ int main()
 	for (i = 0; i < 30; ++i)
 	{
 	    TestHeapSort();
+	    sleep(1);
 	}
 
     return 0;
@@ -37,21 +41,32 @@ void TestHeapSort()
 {
 	int i = 0;
 	int random = 0;
-	int arr1[500] = {0};
-	int arr2[500] = {0};
+	int arr1[NUM_OF_ITER] = {0};
+	int arr2[NUM_OF_ITER] = {0};
+	int test[4] = {2,0, 2, 8};
 	srand(time(NULL));
-	for (i = 0; i < 500; ++i)
+	printf("original is\n");
+	for (i = 0; i < NUM_OF_ITER; ++i)
 	{
 
-		random = rand();
+		random = rand()%10;
 		arr1[i] = random;
 		arr2[i] = random;
+		printf("%d\n",arr1[i]);
 	}
-
-	HeapSort(arr1, 500, sizeof(int),IsBeforeIMP, NULL);
-	qsort(arr2, 500, sizeof(int), CompareFunc);
+	
+	QuickSort(arr2, NUM_OF_ITER, sizeof(int),IsBeforeIMP);
+	qsort(arr1, NUM_OF_ITER, sizeof(int), CompareFunc);
 	printf("HeapSort\n");
-	TEST1(memcmp(arr1, arr2, 500*sizeof(int)), 0);
+		printf("mine \t qsort\n");
+	for (i = 0 ; i < NUM_OF_ITER ; i++)
+	{
+
+		printf("%d\t",arr2[i]);
+		printf("%d",arr1[i]);
+		printf("\n");
+	}
+	TEST1(memcmp(arr1, arr2, NUM_OF_ITER*sizeof(int)), 0);
 }
 
 int IsBeforeIMP(const void *data1, 

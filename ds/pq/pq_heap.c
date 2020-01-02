@@ -20,12 +20,6 @@ enum states
 	FAIL = 1
 };
 
-typedef struct sort_params_wrapper
-{
-	int(*compare_func)(const void *new_data, const void *src_data, void *param);
-	void *priority_param;
-}compare_wrapper_t;
-
 struct p_queue
 {
 	heap_t *heap;
@@ -41,6 +35,7 @@ p_queue_t *PQCreate(void *priority_param, int(*compare_func)
 	}
 	
 	assert(compare_func);
+	
 	new_pq -> heap = HeapCreate(compare_func, priority_param);
 	if (NULL == new_pq -> heap)
 	{
@@ -48,7 +43,6 @@ p_queue_t *PQCreate(void *priority_param, int(*compare_func)
 		return NULL;
 	}
 
-	
 	return new_pq;
 }
 
@@ -58,19 +52,13 @@ void PQDestroy(p_queue_t *p_queue)
 	
 	HeapDestroy(p_queue -> heap);
 	free(p_queue);
-	/*p_queue = NULL;*/
 }
 
 int PQEnqueue(p_queue_t *p_queue, void *data)
 {
 	assert(p_queue);
-	
-	if (HeapPush(p_queue -> heap, data) != SUCCESS)
-	{
-		return FAIL;
-	}
 
-	 return SUCCESS;
+	 return HeapPush(p_queue -> heap, data);
 }
 
 size_t PQSize(const p_queue_t *p_queue)
@@ -99,6 +87,7 @@ void *PQDequeue(p_queue_t *p_queue)
 	void *data = NULL;
 	
 	assert(p_queue);
+	
 	if (!PQIsEmpty(p_queue))
 	{
 		data = PQPeek(p_queue);
@@ -120,14 +109,10 @@ void PQClear(p_queue_t *p_queue)
 void *PQErase(void *data, p_queue_t *p_queue, 
  int(*is_match)(const void *new_data, const void *param))
 {
-	void *ptr = NULL;
-	
 	assert(p_queue);
 	assert(is_match);
 	
-	ptr = HeapRemove(p_queue -> heap, is_match, data);  
-
-	return ptr;
+	return HeapRemove(p_queue -> heap, is_match, data); 
 }
 
 
