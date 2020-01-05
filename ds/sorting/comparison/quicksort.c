@@ -5,33 +5,31 @@
 #include "../sorting.h"
 
 #define PIVOT 0
+#define LAST_ELEMENT ((nmemb) - (1))
 #define JUMP(i) (((char *)base) + ((i) * (elem_size)))
 
 static void SwapIMP(void *val1, void *val2, size_t element_size);
 
-void QuickSort(void *base, size_t nmemb, size_t elem_size, is_before_t func)
+void QuickSort(void *base, size_t nmemb, size_t elem_size, is_before_t compare)
 {
 	size_t pivot_i = 0;
-	size_t right_i = 0;
-	size_t left_i = 0;
+	size_t right_i = LAST_ELEMENT;
+	size_t left_i = 1;
 	
 	if (nmemb <= 1)
 	{
 		return;
 	}
 	
-	right_i = nmemb - 1;
-	left_i = 1;
-
 	while (left_i <= right_i)
 	{
-		while ((func(JUMP(right_i), JUMP(PIVOT), NULL) <= 0)
+		while ((compare(JUMP(right_i), JUMP(PIVOT)) <= 0)
 			    && (right_i > 0))
 		{
 			--right_i;
 		}
 		
-		while ((func(JUMP(left_i), JUMP(PIVOT), NULL) > 0)
+		while ((compare(JUMP(left_i), JUMP(PIVOT)) > 0)
 				&& (left_i < nmemb))
 		{
 			++left_i;
@@ -46,8 +44,8 @@ void QuickSort(void *base, size_t nmemb, size_t elem_size, is_before_t func)
 	}
 	SwapIMP(JUMP(pivot_i), JUMP(right_i), elem_size);
 	
-	QuickSort(base, right_i, elem_size, func);
-	QuickSort(JUMP(left_i), nmemb - left_i, elem_size, func);
+	QuickSort(base, right_i, elem_size, compare);
+	QuickSort(JUMP(left_i), (nmemb - left_i), elem_size, compare);
 }
 
 static void SwapIMP(void *val1, void *val2, size_t element_size)

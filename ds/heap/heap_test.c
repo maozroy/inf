@@ -27,18 +27,18 @@ void TestCreate()
 	for (i = 0 ; i < 11 ; ++i)
 	{
 		HeapPush(heap, &arr[i]);
-			PrintArrayIMP(heap);
-			printf("END\n");
+
+
 	}
 				printf("Remove::\n");
 	printf("%d\n",*(int*)HeapRemove(heap, match, &arr[5]));
-	PrintArrayIMP(heap);
+
 				printf("END\n");
 	
 	for (i = 0 ; i < 11 ; ++i)
 	{
 	HeapRemove(heap, match, &arr[i]);
-			PrintArrayIMP(heap);
+
 			printf("END\n");
 	}
 
