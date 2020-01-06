@@ -39,10 +39,10 @@ struct heap
 	comparison_t comparison_func;
 	void *param;
 };
-
+static void NullifyHeapIMP(heap_t *heap);
 static void SwapElementIMP(void **data1, void **data2);
 int HeapComparisonIMP(const void *new_data, const void *src_data, 
-						void *compare_param);
+					  void *compare_param);
 
 heap_t *HeapCreate(comparison_t comparison_func, void *comparison_param)
 {
@@ -76,10 +76,15 @@ void HeapDestroy(heap_t *heap)
 	assert(heap);
 	
 	VectorDestroy(THE_VECTOR);
+	NullifyHeapIMP(heap);
+	free(heap);
+}
+
+static void NullifyHeapIMP(heap_t *heap)
+{
 	heap -> vector = NULL;
 	heap -> comparison_func = NULL;
 	heap -> param = NULL;
-	free(heap);
 }
 
 int HeapPush(heap_t *heap, void *data)
@@ -110,7 +115,7 @@ void *HeapPeek(const heap_t *heap)
 }
 
 int HeapComparisonIMP(const void *new_data, const void *src_data, 
-						void *compare_param)
+					  void *compare_param)
 {
 	heap_t *heap = (void *)compare_param;
 	comparison_t func = heap -> comparison_func;
@@ -183,6 +188,13 @@ static ssize_t FindIndexToRemoveIMP(d_vector_t *vector,
 	return result;
 }
 
+static void SwapAndPopIMP(heap_t *heap, void *elem_to_remove)
+{
+	SwapElementIMP(elem_to_remove, 
+				   VectorGetItemAddress(THE_VECTOR, LAST_INDEX));
+	VectorPopBack(THE_VECTOR);
+}
+
 void *HeapRemove(heap_t *heap, is_match_t is_match_func, void *param)
 {
 	ssize_t index_to_remove = 0;
@@ -196,11 +208,11 @@ void *HeapRemove(heap_t *heap, is_match_t is_match_func, void *param)
 	assert(is_match_func);
 	
 	index_to_remove = FindIndexToRemoveIMP(THE_VECTOR, is_match_func, param);
-
 	if (NOT_FOUND == index_to_remove)
 	{	
 		return NULL;
 	}
+	
 	elem_to_remove = VectorGetItemAddress(THE_VECTOR, index_to_remove);
 	data_to_return = *(void **)elem_to_remove;		
 	
@@ -210,11 +222,9 @@ void *HeapRemove(heap_t *heap, is_match_t is_match_func, void *param)
 	}
 	else
 	{
+		SwapAndPopIMP(heap, elem_to_remove);
+		
 		parent = VectorGetItemAddress(THE_VECTOR, index_to_remove / 2);
-		last_element = VectorGetItemAddress(THE_VECTOR, LAST_INDEX);
-
-		SwapElementIMP(elem_to_remove, last_element);
-		VectorPopBack(THE_VECTOR);
 		root = VectorGetItemAddress(THE_VECTOR, ROOT);
 		
 		if (HeapComparisonIMP(elem_to_remove, parent, heap) == IS_BEFORE)

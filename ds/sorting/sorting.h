@@ -1,6 +1,5 @@
 typedef int (*is_before_t)(const void *new_data, 
-							const void *src_data,
-							void *compare_param);
+							const void *src_data);
 
 void BubbleSort(int *arr, size_t len);
 

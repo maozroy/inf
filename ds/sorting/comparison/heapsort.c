@@ -1,8 +1,8 @@
  /********************************************
 *	Author : Maoz Roytman		
-*	Reviewer : 	Sharon Rottner
+*	Reviewer : 	Gal Salemon
 *	HeapSort					
-*	Date: 29/12/2019		                
+*	Date: 01/01/2020		                
 *																				
 ********************************************/
 
@@ -14,11 +14,13 @@
 #include "../../heap/heapify.h"
 #include "../sorting.h"
 
+#define LAST_ELEMENT ((arr_size) - (1))
+
 static void SwapFirstLastIMP(void *arr, size_t arr_size, size_t elem_size);
 static int UpSideIsBeforeIMP(const void *new_data, const void *src_data, 
-								void *compare_param);
-static void HippiDownFromMiddleIMP(void *arr,size_t arr_size, size_t elem_size, 
-									is_before_t func, void *wrapper);
+							 void *compare_param);
+static void HippiDownFromMiddleIMP(void *arr, size_t arr_size, size_t elem_size, 
+								   is_before_t func, void *wrapper);
 									
 typedef struct upside_comp
 {
@@ -40,7 +42,7 @@ void HeapSort(void *arr, size_t arr_size, size_t elem_size,
 	wrapper.compare_param = param;
 	
 	HippiDownFromMiddleIMP(arr, arr_size, elem_size, 
-							UpSideIsBeforeIMP, &wrapper);
+						   UpSideIsBeforeIMP, &wrapper);
 	
 	while (arr_size > 0)
 	{
@@ -56,12 +58,12 @@ static void SwapFirstLastIMP(void *arr, size_t arr_size, size_t elem_size)
 	void *holder = alloca(elem_size);
 	
 	memcpy(holder, runner, elem_size);
-	memcpy(runner, (runner + ((arr_size - 1) * elem_size)), elem_size);
-	memcpy(runner + ((arr_size - 1) * elem_size), holder, elem_size);
+	memcpy(runner, (runner + (LAST_ELEMENT * elem_size), elem_size);
+	memcpy(runner + (LAST_ELEMENT * elem_size), holder, elem_size);
 }
 
 static int UpSideIsBeforeIMP(const void *new_data, const void *src_data, 
-								void *compare_param)
+							 void *compare_param)
 {
 	upside_t *wrapper = compare_param;
 	

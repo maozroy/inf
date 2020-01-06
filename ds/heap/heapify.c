@@ -13,6 +13,8 @@
 
 #include "heapify.h"
 
+#define JUMP_TO_INDEX(i) (((char *)array) + ((i) * (elem_size)))
+
 static size_t GetParentIMP(size_t index, size_t size);
 static size_t GetRightIMP(size_t index, size_t size);
 static size_t GetLeftIMP(size_t index, size_t size);
@@ -32,18 +34,18 @@ void HeapifyUp(void *arr,
 	assert(func);
 	assert(elem_size);
 	
-	if ((func((array + parent_index * elem_size), 
-			  (array + index_of_heapify * elem_size), compare_param) == 1) 
+	if ((func(JUMP_TO_INDEX(parent_index), 
+			  JUMP_TO_INDEX(index_of_heapify), compare_param) == 1) 
 				||  (index_of_heapify == 0))
 	{
 		return;
 	}
 	
-	SwapIMP((array + index_of_heapify * elem_size), 
-					(array + parent_index * elem_size),
-					elem_size);
+	SwapIMP(JUMP_TO_INDEX(index_of_heapify), 
+			JUMP_TO_INDEX(parent_index),
+			elem_size);
 	HeapifyUp(arr, arr_size, elem_size, parent_index,
-				func, compare_param);
+			  func, compare_param);
 }
 
 void HeapifyDown(void *arr, 
@@ -69,9 +71,9 @@ void HeapifyDown(void *arr,
 		return;
 	}
 		
-	if ((func((array + left_index * elem_size), 
-			(array + right_index * elem_size), compare_param) == 1) || 
-			right_index == arr_size)
+	if ((func(JUMP_TO_INDEX(left_index), JUMP_TO_INDEX(right_index), 
+			  compare_param) == 1)
+	    || right_index == arr_size)
 	{
 		child_to_cmp = left_index;
 	}
@@ -79,14 +81,14 @@ void HeapifyDown(void *arr,
 	{
 		child_to_cmp = right_index;
 	}
-	if (func((array + index_of_heapify * elem_size), 
-		(array + child_to_cmp * elem_size), compare_param) == 1)
+	if (func(JUMP_TO_INDEX(index_of_heapify), 
+			 JUMP_TO_INDEX(child_to_cmp), compare_param) == 1)
 	{
 		return;
 	}
-	SwapIMP((array + index_of_heapify * elem_size), 
-					(array + child_to_cmp * elem_size),
-					 elem_size);
+	SwapIMP(JUMP_TO_INDEX(index_of_heapify), 
+			JUMP_TO_INDEX(child_to_cmp),
+			elem_size);
 	HeapifyDown(arr, arr_size, elem_size, child_to_cmp, 
 				func, compare_param);
 }

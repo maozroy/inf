@@ -28,7 +28,7 @@ int main()
 {
 	int i = 0;
 
-	for (i = 0; i < 30; ++i)
+	for (i = 0; i < 50; ++i)
 	{
 	    TestHeapSort();
 	    sleep(1);
@@ -49,15 +49,15 @@ void TestHeapSort()
 	for (i = 0; i < NUM_OF_ITER; ++i)
 	{
 
-		random = rand()%10;
+		random = rand()%1000;
 		arr1[i] = random;
 		arr2[i] = random;
-		printf("%d\n",arr1[i]);
+	/*	printf("%d\n",arr1[i]);*/
 	}
 	
-	QuickSort(arr2, NUM_OF_ITER, sizeof(int),IsBeforeIMP);
+	QuickSort(arr2, NUM_OF_ITER, sizeof(int),CompareFunc);
 	qsort(arr1, NUM_OF_ITER, sizeof(int), CompareFunc);
-	printf("HeapSort\n");
+/*	printf("HeapSort\n");
 		printf("mine \t qsort\n");
 	for (i = 0 ; i < NUM_OF_ITER ; i++)
 	{
@@ -65,7 +65,7 @@ void TestHeapSort()
 		printf("%d\t",arr2[i]);
 		printf("%d",arr1[i]);
 		printf("\n");
-	}
+	}*/
 	TEST1(memcmp(arr1, arr2, NUM_OF_ITER*sizeof(int)), 0);
 }
 
