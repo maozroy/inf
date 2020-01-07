@@ -6,9 +6,9 @@
                              Writer:    Gal Salemon                       
                              Reviewer:  Maoz                   
 *****************************************************************************/
-#include <stdlib.h> 
-#include <string.h> 
-#include <assert.h>
+#include <stdlib.h> /* size_t */
+#include <string.h> /* memcpy */
+#include <assert.h> /* assert */
 
 #include "dhcp.h"
 #include "./trie/trie.h" 
@@ -44,6 +44,7 @@ dhcp_t *DHCPCreate(const IPAddress subnet, size_t mask)
 	init_status = InitDhcpIMP(dhcp, subnet, mask);
 	if (FAIL == init_status)
 	{
+		TrieDestroy(dhcp->trie);
 		free(dhcp);
 		
 		return NULL;
@@ -117,15 +118,25 @@ alloc_status_t DHCPAllocIP(dhcp_t *dhcp, const IPAddress requested,
 	BinaryIp binary_requested = IPtoBit(*(IPAddress*)requested);
 		
 	assert(dhcp);
+	assert(result_address);
 	
 	if (0 == TrieCountFree(dhcp->trie))
 	{
+		result_address = NULL;
+		
 		return DHCP_FULL;
+	}
+	
+	if (0 == binary_requested)
+	{
+		return AllocDifferentIPIMP(dhcp, result_address);
 	}
 	
 	valid_status = IsValid(dhcp->subnet, *(IPAddress*)requested, dhcp->mask);
 	if (NOT_VALID == valid_status)
 	{
+		result_address = NULL;
+		
 		return INVALID_IP;
 	}
 	
@@ -138,6 +149,8 @@ alloc_status_t DHCPAllocIP(dhcp_t *dhcp, const IPAddress requested,
 	}
 	else if (T_MALLOC_FAIL == trie_status)
 	{
+		result_address = NULL;
+		
 		return MALLOC_FAIL;
 	}
 	
@@ -149,8 +162,11 @@ static alloc_status_t AllocDifferentIPIMP(dhcp_t *dhcp,
 {
 	int valid_status = VALID;
 	trie_alloc_status_t trie_status = T_SUCCESS_ALLOCATED_REQUESTED;
-	BinaryIp binary_subnet = IPtoBit(*(IPAddress*)dhcp->subnet);
+	BinaryIp binary_subnet = 0;
 	IPAddress valid_ip = {0};
+	
+	AddSubnet(dhcp->subnet, dhcp->mask, 0, valid_ip);
+	binary_subnet = IPtoBit(valid_ip);
 		
 	while (VALID == valid_status)
 	{
@@ -165,12 +181,16 @@ static alloc_status_t AllocDifferentIPIMP(dhcp_t *dhcp,
 		}			
 		if (T_MALLOC_FAIL == trie_status)
 		{
+			result_address = NULL;
+			
 			return MALLOC_FAIL;
 		}			
 		
 		BitToIp(binary_subnet, valid_ip);
 		valid_status = IsValid(dhcp->subnet, valid_ip, dhcp->mask);
 	}		
+	
+	result_address = NULL;
 			
 	return INVALID_IP;
 }

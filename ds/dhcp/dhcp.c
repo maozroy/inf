@@ -60,6 +60,8 @@ dhcp_t *DHCPCreate(const IPAddress subnet, size_t mask)
 
 void DHCPDestroy(dhcp_t *dhcp)
 {
+	assert(dhcp);
+	
 	TrieDestroy(dhcp -> trie);
 	free(dhcp);
 }
@@ -75,6 +77,7 @@ alloc_status_t DHCPAllocIP(dhcp_t *dhcp, const IPAddress requested,
 	
 	assert(dhcp);
 	assert(result_address);
+	assert(requested);
 	
 	if (TrieIsFull(dhcp -> trie))
 	{
@@ -150,9 +153,6 @@ free_status_t DHCPFreeIP(dhcp_t *dhcp, const IPAddress address_to_free)
 	
 	switch (trie_status)
 	{
-		case T_SUCCESS:
-			return SUCCESS;
-			
 		case T_DOUBLE_FREE:
 			return DOUBLE_FREE;		
 			

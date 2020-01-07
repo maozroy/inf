@@ -6,9 +6,9 @@
                              Writer:    Gal Salemon                       
                              Reviewer:  Maoz                   
 *****************************************************************************/
-#include <stdlib.h> 
-#include <assert.h>
-#include <math.h> 
+#include <stdlib.h> /* size_t */
+#include <math.h>   /* pow */  
+#include <assert.h> /* assert */
 
 #include "trie.h"
 
@@ -33,6 +33,7 @@ struct node
 	int is_subtree_full;
 };
 
+static unsigned int GetDirectionIMP(unsigned int ip, size_t level);
 static node_t *CreateNodeIMP();
 static void RecDestroyIMP(node_t *node);
 static int IsSubtreeFullIMP(node_t *parent);
@@ -127,8 +128,7 @@ static trie_alloc_status_t RecInsertIMP(node_t *current_node,
 										unsigned int requested_ip)
 {
 	trie_alloc_status_t status = T_SUCCESS_ALLOCATED_REQUESTED;
-	unsigned int lsb = 1;
-	unsigned int direction = 0;	
+	unsigned int direction = GetDirectionIMP(requested_ip, level);
 	
 	if (0 == level)
 	{	
@@ -143,11 +143,6 @@ static trie_alloc_status_t RecInsertIMP(node_t *current_node,
 			return T_REQUESTED_IP_OCCUPIED;
 		}
 	}
-	
-	lsb = 1;
-	lsb <<= level - 1;
-	direction = requested_ip & lsb;
-	direction >>= level - 1;
 	
 	if (IsHaveChildInDirectionIMP(current_node, direction))
 	{
@@ -175,9 +170,8 @@ static trie_alloc_status_t RecInsertIMP(node_t *current_node,
 							  requested_ip);
 	}
 	
-	if (IsHaveChildInDirectionIMP(current_node, ZERO) && 
-		IsHaveChildInDirectionIMP(current_node, ONE) &&
-		T_SUCCESS_ALLOCATED_REQUESTED == status)
+	if ((IsSubtreeFullIMP(current_node) && 
+		T_SUCCESS_ALLOCATED_REQUESTED == status))
 	{
 		if (IsSubtreeFullIMP(current_node))
 		{
@@ -200,18 +194,12 @@ static trie_free_status_t RecDeallocateIMP(node_t *current_node,
 										   size_t level)
 {
 	trie_free_status_t status = T_SUCCESS;
-	unsigned int lsb = 1;
-	unsigned int direction = 0;
+	unsigned int direction = GetDirectionIMP(ip, level);
 	
 	if (NULL == current_node)
 	{
 		return T_IP_NOT_FOUND;
 	}
-	
-	lsb = 1;
-	lsb <<= level - 1;
-	direction = ip & lsb;
-	direction >>= level - 1;
 	
 	if (0 == level)
 	{	
@@ -225,18 +213,11 @@ static trie_free_status_t RecDeallocateIMP(node_t *current_node,
 		{
 			return T_DOUBLE_FREE;
 		}
-		else
-		{
-			return T_IP_NOT_FOUND;
-		}
 	}
 	
 	status = RecDeallocateIMP(current_node->children[direction], ip, level - 1);
-	
-	if (T_SUCCESS == status)
-	{
-		current_node->is_subtree_full = EMPTY;
-	}
+
+	current_node->is_subtree_full = EMPTY;	
 	
 	return status;
 }
@@ -286,8 +267,25 @@ static int IsHaveChildInDirectionIMP(node_t *node, int direction)
 
 static int IsSubtreeFullIMP(node_t *parent)
 {
+	if ((parent->children[ZERO] == NULL) || (parent->children[ONE] == NULL))
+	{
+		return FALSE;
+	}	
+	
 	return ((parent->children[ZERO]->is_subtree_full == FULL) && 
 			(parent->children[ONE]->is_subtree_full == FULL));
 }
 
+static unsigned int GetDirectionIMP(unsigned int ip, size_t level)
+{
+	unsigned int lsb = 1;
+	unsigned int direction = 0;
+	
+	lsb = 1;
+	lsb <<= level - 1;
+	direction = ip & lsb;
+	direction >>= level - 1;
+	
+	return direction;
+}
 

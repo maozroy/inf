@@ -37,8 +37,8 @@ enum kids
 	RIGHT = 1
 };
 
-node_t *CreateNodeIMP(void);
-static unsigned int GoToNexTIMP(unsigned int ip, size_t height);
+static node_t *CreateNodeIMP(void);
+static unsigned int GetDirectionIMP(unsigned int ip, size_t height);
 static void RecTrieDestroyIMP(node_t *node);
 static int IsThereTwoChildrenIMP(node_t *node);
 static int IsAnyChildEmptyIMP(node_t *node);
@@ -56,7 +56,7 @@ trie_t *TrieCreate(size_t height)
 	trie_t *tree = NULL;
 	node_t *root = NULL;
 	
-	assert(height);
+
 	
 	tree = (trie_t *)malloc(sizeof(trie_t));
 	if (NULL == tree)
@@ -77,7 +77,7 @@ trie_t *TrieCreate(size_t height)
 	return tree;
 }
 
-node_t *CreateNodeIMP(void)
+static node_t *CreateNodeIMP(void)
 {
 	node_t *new_node = (node_t *)malloc(sizeof(node_t));
 	if (NULL == new_node)
@@ -101,23 +101,22 @@ void TrieDestroy(trie_t *trie)
 
 void RecTrieDestroyIMP(node_t *node)
 {
-	if (node -> children[LEFT] != NULL)
+	if (NULL == node)
 	{
-		RecTrieDestroyIMP(node -> children[LEFT]);
+		return;
 	}
-	if (node -> children[RIGHT] != NULL)
-	{
-		RecTrieDestroyIMP(node -> children[RIGHT]);
-	}
+
+	RecTrieDestroyIMP(node -> children[LEFT]);
+	RecTrieDestroyIMP(node -> children[RIGHT]);
 	
 	free(node);
 }
 
-static unsigned int GoToNexTIMP(unsigned int ip, size_t height)
+static unsigned int GetDirectionIMP(unsigned int ip, size_t height)
 {
-	unsigned int which_bit = (ip>>(height - 1)) & 1;
+	unsigned int direction = (ip>>(height - 1)) & 1;
 
-	return which_bit;
+	return direction;
 }
 
 trie_alloc_status_t TrieInsert(trie_t *trie, unsigned int requested_ip)
@@ -136,6 +135,7 @@ static node_t *RecTrieInsertIMP(node_t *node, size_t height,
 								trie_alloc_status_t *status)
 {
 	int direction = 0;
+	
 	if (T_SUCCESS_ALLOCATED_REQUESTED != *status)
 	{
 		return node;
@@ -157,21 +157,20 @@ static node_t *RecTrieInsertIMP(node_t *node, size_t height,
 		
 		return node;
 	}
-	
 	if (0 == height)
 	{
 		node -> is_subtree_full = FULL;
-		status = T_SUCCESS;
+		*status = T_SUCCESS_ALLOCATED_REQUESTED;
 		
 		return node;
 	}
-	direction = GoToNexTIMP(requested_ip, height);
+	direction = GetDirectionIMP(requested_ip, height);
 	node -> children[direction] = RecTrieInsertIMP(node -> children[direction], 
 												   height - 1, 
 												   requested_ip, 
 												   status);
 
-	if (IsThereTwoChildrenIMP(node) && !IsAnyChildEmptyIMP(node))
+	if ((IsThereTwoChildrenIMP(node)) && (!IsAnyChildEmptyIMP(node)))
 	{
 		node -> is_subtree_full = FULL;
 	}
@@ -208,7 +207,7 @@ static void RecTrieDeallocateIMP (node_t *node, size_t height,
 {
 	int direction = 0;
 	
-	direction = GoToNexTIMP(ip, height);
+
 	if (NULL == node)
 	{
 		*status = T_IP_NOT_FOUND;
@@ -230,13 +229,15 @@ static void RecTrieDeallocateIMP (node_t *node, size_t height,
 		}
 	}
 	
-	RecTrieDeallocateIMP (node -> children[direction], height - 1, ip, status);
+	direction = GetDirectionIMP(ip, height);
+	RecTrieDeallocateIMP(node -> children[direction], height - 1, ip, status);
 	node -> is_subtree_full = FREE; 
 }
 
 size_t TrieCountAlloc(trie_t *trie)
 {
 	size_t counter = 0;
+	
 	RecTrieCountAlloc(trie -> node, trie -> height, &counter);
 	
 	return counter;
@@ -286,5 +287,5 @@ int TrieIsFull(trie_t *trie)
 {
 	assert(trie);
 
-	return (trie -> node -> is_subtree_full == FULL);
+	return (FULL == trie -> node -> is_subtree_full);
 }

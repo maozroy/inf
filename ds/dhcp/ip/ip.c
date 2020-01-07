@@ -21,6 +21,8 @@ BinaryIp IPtoBit(IPAddress address)
 	size_t i = 0;
 	BinaryIp bit = 0;
 	
+	assert(address);
+	
 	for (i = 0; i < IP_SIZE ; ++i)
 	{
 		bit += address[i]<<(BITS_IN_BYTE * (IP_SIZE - i - 1));
@@ -34,6 +36,8 @@ void BitToIp(BinaryIp ip, IPAddress result_ip)
 	unsigned char temp = 0;
 	size_t num_of_shift = 0;
 	
+	assert(result_ip);
+	
 	for (i = 0; i < IP_SIZE ; ++i)
 	{
 		num_of_shift = (BITS_IN_BYTE * (IP_SIZE - i - 1));
@@ -44,7 +48,11 @@ void BitToIp(BinaryIp ip, IPAddress result_ip)
 
 void CutSubnet(IPAddress address, size_t mask)
 {
-	BinaryIp bit = IPtoBit(address);
+	BinaryIp bit = 0;
+	
+	assert(address);
+	
+	bit = IPtoBit(address);
 	bit = bit << mask;
 	bit = bit >> mask;
 	
@@ -55,9 +63,14 @@ void CutSubnet(IPAddress address, size_t mask)
 
 int IsValid(IPAddress subnet, IPAddress address, size_t mask)
 {
-	BinaryIp bit_adrs = IPtoBit(address);
-	BinaryIp bit_subnet = IPtoBit(subnet);
+	BinaryIp bit_adrs = 0;
+	BinaryIp bit_subnet = 0;
 	
+	assert(subnet);
+	assert(address);
+	
+	bit_adrs = IPtoBit(address);
+	bit_subnet = IPtoBit(subnet);
 	bit_adrs = bit_adrs >> (BITS_IN_ADRS - mask);
 	bit_adrs = bit_adrs << (BITS_IN_ADRS - mask);
 	bit_subnet = bit_subnet >> (BITS_IN_ADRS - mask);
@@ -68,8 +81,12 @@ int IsValid(IPAddress subnet, IPAddress address, size_t mask)
 
 void AddSubnet(IPAddress subnet, size_t mask, unsigned int added_part, IPAddress result)
 {
-	BinaryIp subnet_ip = IPtoBit(subnet);
+	BinaryIp subnet_ip = 0;
 	
+	assert(subnet);
+	assert(result);
+	
+	subnet_ip = IPtoBit(subnet);
 	added_part <<= mask;
 	added_part >>= mask;
 	subnet_ip >>= (BITS_IN_ADRS) - mask;
