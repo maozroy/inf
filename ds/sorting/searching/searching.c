@@ -6,9 +6,9 @@
 *																				
 ********************************************/
 
-#include <math.h>
-#include <stddef.h>
-#include <unistd.h>
+#include <math.h> /*sqrt*/
+
+#include <unistd.h> /*size_t*/
 
 
 #include "searching.h"
@@ -23,6 +23,7 @@ int *BSearch(const int *arr, size_t size, int val)
 	int half_size = 0;
 	int *element_to_search = NULL;
 	int division_flag = 0;
+	
 	half_size = size - (size / 2);
 	if (size % 2 != 0)
 	{
@@ -40,7 +41,7 @@ int *BSearch(const int *arr, size_t size, int val)
 		return element_to_search;
 	}
 	
-	if (size <= 1)
+	if (1 >= size)
 	{
 		if (*(int*)arr == val)
 		{
@@ -52,7 +53,9 @@ int *BSearch(const int *arr, size_t size, int val)
 	
 	if (*element_to_search < val)
 	{
-		return BSearch((int*)arr + (size - half_size),size - half_size + division_flag, val);
+		return BSearch((int*)arr + (size - half_size),
+					   size - half_size + division_flag, 
+					   val);
 	}
 	else
 	{
@@ -83,7 +86,7 @@ int *JSearch(const int *arr, size_t size, int val)
 
 int *RecJSearchIMP(const int *arr, ssize_t size, int val, size_t jump)
 {		
-	if (size <= 0)
+	if (0 >= size)
 	{
 		return NULL;
 	}
@@ -108,12 +111,13 @@ int *RecSearchOneByOne(const int *arr, ssize_t size, int val)
 	{
 		return NULL;
 	}
+	
 	if (*(int *)arr == val)
 	{
 		return (int *)arr;
 	}
+	
 	RecSearchOneByOne(arr - 1, size - 1, val);
-
 }
 
 int MinIMP(int x, int y)
@@ -124,9 +128,8 @@ int MinIMP(int x, int y)
 	}
 	else
 	{
-	return x;
+		return x;
 	}
-
 }
 int MaxIMP(int x, int y)
 {
@@ -136,7 +139,6 @@ int MaxIMP(int x, int y)
 	}
 	else
 	{
-	return y;
+		return y;
 	}
-
 }
