@@ -1,10 +1,11 @@
 #include <stdlib.h> /*malloc and free*/
 #include <assert.h> /*asserting*/
+#include <stddef.h> /* size_t */
 #include "stack.h" /*header*/
 
 void CopyVoidToVoid(void *src, void *dst, size_t n);
 
-struct stack_t
+struct stack
 {
     size_t elements_size;
     char *head;
@@ -60,7 +61,7 @@ int StackPush(stack_t *stack, const void *n)
 
 	return 0;
 }
-
+/*
 void CopyVoidToVoid(void *src, void *dst, size_t n)
 {
 	size_t i = 0;
@@ -75,7 +76,7 @@ void CopyVoidToVoid(void *src, void *dst, size_t n)
 		src = ((char*)src) + 1;
 	}
 }
-
+*/
 void *StackPeek(const stack_t *stack)
 {
 	assert(stack);

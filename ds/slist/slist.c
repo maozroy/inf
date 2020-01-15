@@ -174,15 +174,15 @@ int SListHasLoop (sl_node_t *head)
 	return(0);
 }
 
-const sl_node_t *SListFind(const sl_node_t *node, void *param, action_ptr ptr)
+const sl_node_t *SListFind(const sl_node_t *node, void *param, match_ptr is_found)
 {	
 	assert(node);
-	assert(ptr);
+	assert(is_found);
 	assert(param);
 
 	while (node->next != NULL)
 	{
-		if (ptr(node, param) == 1)
+		if (is_found(node, param) == 1)
 		{
 			return node;
 		}
@@ -190,7 +190,7 @@ const sl_node_t *SListFind(const sl_node_t *node, void *param, action_ptr ptr)
 		node = node->next;
 	}
 	
-	if (ptr(node, param) == 1)
+	if (is_found(node, param) == 1)
 	{
 		return node;
 	}
@@ -198,7 +198,7 @@ const sl_node_t *SListFind(const sl_node_t *node, void *param, action_ptr ptr)
 	return NULL;
 }
 
-int SListForEach(sl_node_t *node, void *param, for_each_ptr ptr)
+int SListForEach(sl_node_t *node, void *param, action_ptr ptr)
 {
 	assert(node);
 	assert(ptr);

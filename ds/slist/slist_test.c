@@ -44,7 +44,7 @@ int main()
 	return 0;
 	
 }
-
+/*
 void TestSListCreateNode()
 {
 	int a = 1;
@@ -358,3 +358,4 @@ void TestSListFindIntersection()
 	SListFreeAll(ptr_a);
 	
 }
+*/
