@@ -1,9 +1,9 @@
 # Makefile for dynamic library creation
 
 C_DEPS=scheduler.c ../task/task.c ../pq/pq.c ../uid/uid.c \
-../sortedlist/sortedlist.c
+../heap/heap.c ../heap/heapify.c ../vector/vector.c
 
-OBJ_DEPS=scheduler.o task.o pq.o uid.o sortedlist.o
+OBJ_DEPS=scheduler.o task.o pq.o uid.o vector.o heapify.o heap.o
 
 all: create_objs create_shared_lib remove_objs
 
@@ -16,3 +16,4 @@ create_shared_lib: $(OBJ_DEPS)
 remove_objs: $(OBJ_DEPS)
 	rm *.o
 
+scheduler
