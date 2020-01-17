@@ -1,30 +1,28 @@
-#define _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
 
+#include <signal.h>
 #include <pthread.h>
 #include <fcntl.h>         
 #include <sys/stat.h>     
 #include <semaphore.h>
-#include <signal.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "wd_utils.h"
-#include "scheduler.h"
 #include "watcher.h"
+#include "scheduler.h"
+
+
+
 #include "uid.h"
 
 
-typedef enum 
-{
-	SUCCESS = 0,
-	FAIL = 1
-}status_t;
+
 
 typedef struct
 {
-	int interval;
-	int dead_time;
 	char **argv;
 	status_t *status;
 }thread_vars;
@@ -43,13 +41,16 @@ int Mmi(char *argv[], int interval, int dead_time)
 	thread_vars variables = {0};
 	char dead_time_buffer[8] = {0};
 	char interval_buffer[8] = {0};	
+	char app_id_buffer[8] = {0};	
 	
-	variables.interval = interval;
-	variables.dead_time = dead_time;
 	variables.argv = argv;
 	variables.status = &status;
 	
 	if(-1 == sprintf(interval_buffer, "%d", interval))
+	{
+		return FAIL;
+	}
+	if(-1 == sprintf(app_id_buffer, "%d", getpid()))
 	{
 		return FAIL;
 	}
@@ -61,6 +62,7 @@ int Mmi(char *argv[], int interval, int dead_time)
 	
 	setenv("interval",interval_buffer, 0);
 	setenv("dead_time",dead_time_buffer, 0);	
+	setenv("app_id",app_id_buffer, 0);		
 	
 	thread_status = sem_open("thread_status", O_CREAT, 0777, 0);
 	if(SEM_FAILED == thread_status)
@@ -93,12 +95,16 @@ static void *ThreadRoutineIMP(void *vars)
 	int interval = 0;
 	int dead_time = 0;
 	char *argv = NULL;
-	int argv_len = 0;
 	status_t *status = NULL;
 	thread_vars *variables = vars;
+	ilrd_uid_t task_id = {0};
+	is_alive_param_t is_alive_params = {0};
 	
-	interval = variables -> interval;
-	dead_time = variables -> dead_time;
+	interval = atoi(getenv("interval"));
+	dead_time = atoi(getenv("dead_time"));
+	
+
+	
 	status = variables -> status;
 	
 	thread_status = sem_open("thread_status", O_CREAT, 0777, 0);
@@ -122,8 +128,8 @@ static void *ThreadRoutineIMP(void *vars)
 		sem_close(thread_ready);
 		ThreadClosed(thread_status, status);
 	}	
-	counter_handle.sa_flags = 0;
-	counter_handle.sa_handler = ResetCounter;
+	counter_handle.sa_flags = 1;
+	counter_handle.sa_handler = ResetThreadCounter;
 	
 	if(-1 == sigaction(SIGUSR1, &counter_handle, NULL))
 	{
@@ -143,11 +149,36 @@ static void *ThreadRoutineIMP(void *vars)
 		ThreadClosed(thread_status, status);	
 	}
 	
+	is_alive_params.dead_time = dead_time;
+	is_alive_params.sched = sched;
+	task_id = SchedAdd(sched, interval, IsProcAlive, &is_alive_params);
+	if (UIDIsBad(task_id) == 0)
+	{
+		free(argv);
+		sem_close(thread_status);
+		sem_close(wtchdg_ready);
+		sem_close(thread_ready);		
+		SchedStop(sched);
+		ThreadClosed(thread_status, status);		
+	}
+	task_id = SchedAdd(sched, interval, SendSIGUSR1, &pid_to_signal);
+	
+	while (DNR)
+	{
+	
+	
+	}
+	
 	free(argv);
 	sem_post(thread_status);
 	
+	
+	
 	return NULL;
 }
+
+
+
 
 void ThreadClosed(sem_t *thread_status, status_t *status)
 {
