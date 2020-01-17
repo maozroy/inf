@@ -7,9 +7,12 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "wd_utils.h"
 #include "scheduler.h"
+#include "watcher.h"
+#include "uid.h"
 
 
 typedef enum 
@@ -26,7 +29,11 @@ typedef struct
 	status_t *status;
 }thread_vars;
 
+
+
+
 static void *ThreadRoutineIMP(void *vars);
+void ThreadClosed(sem_t *thread_status, status_t *status);
 
 int Mmi(char *argv[], int interval, int dead_time)
 {
@@ -34,11 +41,26 @@ int Mmi(char *argv[], int interval, int dead_time)
 	status_t status = 0;
 	sem_t *thread_status = NULL;
 	thread_vars variables = {0};
+	char dead_time_buffer[8] = {0};
+	char interval_buffer[8] = {0};	
 	
 	variables.interval = interval;
 	variables.dead_time = dead_time;
 	variables.argv = argv;
 	variables.status = &status;
+	
+	if(-1 == sprintf(interval_buffer, "%d", interval))
+	{
+		return FAIL;
+	}
+	
+	if(-1 == sprintf(dead_time_buffer, "%d", dead_time))
+	{
+		return FAIL;
+	}	
+	
+	setenv("interval",interval_buffer, 0);
+	setenv("dead_time",dead_time_buffer, 0);	
 	
 	thread_status = sem_open("thread_status", O_CREAT, 0777, 0);
 	if(SEM_FAILED == thread_status)
@@ -49,6 +71,7 @@ int Mmi(char *argv[], int interval, int dead_time)
 	status = pthread_create(&thread, NULL, ThreadRoutineIMP, (void *)&variables);
 	if (FAIL == status)
 	{
+		sem_close(thread_status);
 		return status;
 	}
 
@@ -66,6 +89,7 @@ static void *ThreadRoutineIMP(void *vars)
 	sem_t *wtchdg_ready = NULL;
 	pid_t pid_to_signal = {0};
 	struct sigaction counter_handle = {0};
+	scheduler_t *sched = NULL;
 	int interval = 0;
 	int dead_time = 0;
 	char *argv = NULL;
@@ -77,28 +101,60 @@ static void *ThreadRoutineIMP(void *vars)
 	dead_time = variables -> dead_time;
 	status = variables -> status;
 	
-	argv_len = strlen(*(variables -> argv));
-	argv = malloc(argv_len);
-	if (NULL == argv)
+	thread_status = sem_open("thread_status", O_CREAT, 0777, 0);
+	if (SEM_FAILED == thread_status)
 	{
-		*status = FAIL;
-		return NULL;
+		free(argv);
+		ThreadClosed(thread_status, status);
+	}
+	thread_ready = sem_open("thread_ready", O_CREAT, 0777, 0);
+	if (SEM_FAILED == thread_ready)
+	{
+		free(argv);
+		sem_close(thread_status);
+		ThreadClosed(thread_status, status);
+	}	
+	wtchdg_ready = sem_open("wtchdg_ready", O_CREAT, 0777, 0);
+	if (SEM_FAILED == wtchdg_ready)
+	{
+		free(argv);
+		sem_close(thread_status);
+		sem_close(thread_ready);
+		ThreadClosed(thread_status, status);
+	}	
+	counter_handle.sa_flags = 0;
+	counter_handle.sa_handler = ResetCounter;
+	
+	if(-1 == sigaction(SIGUSR1, &counter_handle, NULL))
+	{
+		free(argv);
+		sem_close(thread_status);
+		sem_close(wtchdg_ready);
+		sem_close(thread_ready);		
+		ThreadClosed(thread_status, status);	
+	}
+	sched = SchedCreate();
+	if(NULL == sched)
+	{
+		free(argv);
+		sem_close(thread_status);
+		sem_close(wtchdg_ready);
+		sem_close(thread_ready);		
+		ThreadClosed(thread_status, status);	
 	}
 	
-	memcpy(argv, *(variables -> argv), argv_len);
-	
-	thread_status = sem_open("thread_status", O_CREAT, 0777, 0);
-	thread_ready = sem_open("thread_ready", O_CREAT, 0777, 0);
-	wtchdg_ready = sem_open("wtchdg_ready", O_CREAT, 0777, 0);
-	
-	counter_handle.sa_flags = 0;
-	counter_handle.sa_handler = SetOffCounter;
-	
-	sigaction(SIGUSR1, &counter_handle, NULL);
-	
-	
-	
 	free(argv);
+	sem_post(thread_status);
 	
 	return NULL;
 }
+
+void ThreadClosed(sem_t *thread_status, status_t *status)
+{
+	*status = FAIL;
+	sem_post(thread_status);
+	pthread_exit(NULL);
+}
+
+
+

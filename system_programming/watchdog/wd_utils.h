@@ -1,1 +1,1 @@
-void SetOffCounter(int nothing);
+void ResetCounter(int nothing);
