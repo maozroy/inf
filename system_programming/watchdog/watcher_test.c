@@ -1,13 +1,17 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "watcher.h"
 
 
-int main ()
+int main(int argc, char *argv[])
 {
-	char *arg = "DAMN";
 
-	printf("starting test");
-	Mmi(&arg, 10, 10);
+	printf("starting test\n");
+	printf("status is %d\n",Mmi(argv, 1, 5));
+	sleep(5);
+	/*KillMe();*/
 
 return 0;
 }
+
+
