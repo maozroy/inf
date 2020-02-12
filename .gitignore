@@ -1,6 +1,8 @@
 *
 !*.c
 !*.h
+!*.class
+!*.java
 !.gitignore
 !makefile
 !/**/
