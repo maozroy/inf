@@ -1,14 +1,27 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/******************************/
+/* FS789                      */
+/* Java2C                     */
+/* 12/02/20                   */
+/* Author- Maoz Roytman       */
+/* Reviewer- Oved Mizrahi     */
+/******************************/
 
-#define EQUALS 0
-#define TO_STRING 1
-#define HASHCODE 2
-#define FINALIZE 3
-#define SHOW_COUNTER 4
-#define SAY_HELLO 5
-#define NUM_OF_MASTERS 6
+#include <stdlib.h> /* Malloc*/
+#include <stdio.h> /*printing*/
+#include <string.h> /*strcpy*/
+#include <assert.h> /*stam for lolz */
+
+enum vtable{
+    EQUALS = 0,
+    TO_STRING = 1,
+    HASHCODE = 2,
+    FINALIZE = 3,
+    SAY_HELLO = 4,
+    NUM_OF_MASTERS = 5
+};
+
+#define BUFFER_SIZE 100
+#define NONE -1
 
 typedef struct class metadata;
 typedef void (*vfunc)(void *);
@@ -39,17 +52,23 @@ typedef struct
 void Object_equals(void *param);
 void Object_hashCode(void *param);
 void Object_toString(void *param);
+void Object_finalize(void *param);
 
-vfunc object_vtable[3] = {Object_equals, 
+vfunc object_vtable[4] = {Object_equals, 
                           Object_toString, 
-                          Object_hashCode};
+                          Object_hashCode,
+                          Object_finalize};
 
 metadata object_metadata = {"object", sizeof(object), NULL, &object_vtable};
 
 void Object_equals(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
-    int *returnval = (int *)wrapper->return_val;
+    int *returnval = NULL;
+
+    assert(param);
+
+    returnval = (int *)wrapper->return_val;
 
     (wrapper->this == wrapper->obj) ? *returnval = 1 : 0; 
 }
@@ -57,8 +76,11 @@ void Object_equals(void *param)
 void Object_hashCode(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
-    size_t *returnval = (size_t *)wrapper->return_val;
+    size_t *returnval = NULL;
 
+    assert(param);
+
+    returnval = (size_t *)wrapper->return_val;
     *returnval = (size_t)(&wrapper->this);
 }
  
@@ -66,11 +88,19 @@ void Object_toString(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
 
+    assert(param);
+
     Object_hashCode(wrapper);
     sprintf((char *)wrapper->return_val, 
             "%s @ %ld", 
             (char *)((object *)wrapper->this)->class->name, 
             *(size_t *)wrapper->return_val);
+}
+
+void Object_finalize(void *param)
+{
+    (void)param;
+    printf("finalize Object \n");
 }
 
 /******************/
@@ -85,19 +115,18 @@ typedef struct
     int num_masters;
 }animal;
 
-void animal_Ctor(void *ani);
+static void animal_CtorIMP(void *ani);
 void animal_toString(void *param);
 void animal_sayHello(void *param);
 void animal_showCounter();
 void animal_finalize(void *param);
 void animal_getNumMasters(void *param);
-void animal_Ctor_int(animal *ani, int num_of_legs);
+static void animal_Ctor_intIMP(animal *ani, int num_of_masters);
 
 vfunc animal_vtable[8] = {Object_equals,
                           animal_toString,  
                           Object_hashCode,
                           animal_finalize, 
-                          animal_showCounter, 
                           animal_sayHello,
                           animal_getNumMasters};
 
@@ -106,14 +135,17 @@ metadata animal_metadata = {"animal", sizeof(animal),
 
 void animal_finalize(void *param)
 {
-    animal *ani = ((method_wrapper *)param)->this;
+    assert(param);
 
-    printf("finalize Animal with ID: %d\n", ani->id);
+    printf("finalize Animal with ID: %d\n", 
+            ((animal *)((method_wrapper *)param)->this)->id);
 }
 
 void animal_toString(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
+
+    assert(param);
 
     sprintf((char *)wrapper->return_val, 
             "Animal with ID %d", 
@@ -122,9 +154,10 @@ void animal_toString(void *param)
 
 void animal_sayHello(void *param)
 {
-    animal *this = param;
+    assert(param);
+
     printf("Animal Hello!\n");
-    printf("I have %d legs\n", this->num_legs);
+    printf("I have %d legs\n",((animal *)param)->num_legs);
 }
 
 void animal_showCounter()
@@ -136,43 +169,49 @@ void animal_getNumMasters(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
 
+    assert(param);
+
     *(int *)wrapper->return_val = ((animal *)wrapper->this)->num_masters;
 }
 
-void anima_static_init1()
+static void animal_static_init1IMP()
 {
     printf("Static block Animal 1\n");
 }
 
-void anima_static_init2()
+static void animal_static_init2IMP()
 {
     printf("Static block Animal 2\n");
 }
 
-void animal_inst_init()
+static void animal_inst_initIMP()
 {
     printf("Instance Initalization block Animal\n");
 }
 
-void animal_Ctor_int(animal *ani, int num_of_masters)
+static void animal_Ctor_intIMP(animal *ani, int num_of_masters)
 {
+    assert(ani);
+
     printf("Animal Ctor int\n");
     ani->num_masters = num_of_masters;
     ani->id = ++animal_counter;
 }
 
-void animal_Ctor(void *ani)
+static void animal_CtorIMP(void *ani)
 {
-    char string[100] = {0};
+    char string[BUFFER_SIZE] = {0};
     method_wrapper wrapper = {NULL};
     animal *new = ani;
     wrapper.return_val = string;
     wrapper.this = ani;
 
+    assert(ani);
+
     printf("Animal Ctor\n");
     new->id = ++animal_counter;
     (*new->obj.class->vtable)[SAY_HELLO](&wrapper);
-    (*new->obj.class->vtable)[SHOW_COUNTER](&wrapper);
+    animal_showCounter(&wrapper);
 
     (*new->obj.class->vtable)[TO_STRING](&wrapper);
     printf("%s\n",(char *) wrapper.return_val);
@@ -180,28 +219,31 @@ void animal_Ctor(void *ani)
     printf("%s\n",(char *) wrapper.return_val);
 }
 
-animal *AnimalCreate(void *space, metadata *data)
+animal *AnimalCreate(void *space, metadata *data, int num_of_masters)
 {
     animal *ani = (animal *)space;
 
+    assert(space);
+    assert(data);
+
     if (is_first_animal)
     {
-        anima_static_init1();
-        anima_static_init2();
+        animal_static_init1IMP();
+        animal_static_init2IMP();
         is_first_animal = 0;
     }
-    animal_inst_init();
+    animal_inst_initIMP();
 
     ani->num_legs = 5;
     ani->num_masters = 1;
     ani->obj.class = data;
-    if (strncmp(data->name,"dog", 3) == 0)
+    if (NONE != num_of_masters)
     {
-        animal_Ctor_int(ani, 2);
+        animal_Ctor_intIMP(ani, num_of_masters);
     }
     else 
     {
-        animal_Ctor(ani);
+        animal_CtorIMP(ani);
     }
 
     return ani;
@@ -209,11 +251,12 @@ animal *AnimalCreate(void *space, metadata *data)
 
 /******************/
 
-void dog_Ctor(void *my_dog);
+static void dog_CtorIMP(void *my_dog);
 void dog_toString(void *param);
 void dog_sayHello(void *param);
 void dog_showCounter();
 void dog_finalize(void *param);
+
 int is_first_dog = 1;
 
 typedef struct 
@@ -226,18 +269,17 @@ vfunc dog_vtable[8] = {Object_equals,
                        dog_toString, 
                        Object_hashCode, 
                        dog_finalize,
-                       animal_showCounter,
                        dog_sayHello,
                        animal_getNumMasters};
 
 metadata dog_metadata = {"dog", sizeof(dog), &animal_metadata, &dog_vtable};
 
-void dog_static_init()
+static void dog_static_initIMP()
 {
     printf("Static block Dog 1\n");
 }
 
-void dog_inst_init()
+static void dog_inst_initIMP()
 {
     printf("Instance initalization block Dog 1\n");
 }
@@ -246,6 +288,8 @@ void dog_toString(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
 
+    assert(param);
+
     sprintf((char *)wrapper->return_val, 
             "Dog with ID %d\n", 
             ((animal *)wrapper->this)->id);
@@ -253,19 +297,22 @@ void dog_toString(void *param)
 
 void dog_finalize(void *param)
 {
-    dog *ani = ((method_wrapper *)param)->this;
+    assert(param);
 
-    printf("finalize Dog with ID: %d\n", ani->animal.id);
+    printf("finalize Dog with ID: %d\n",
+    ((dog *)((method_wrapper *)param)->this)->animal.id);
     animal_finalize(param);
 }
 
 void dog_sayHello(void *param)
 {
+    assert(param);
+
     printf("Dog Hello!\n");
-    printf("I have %d legs\n", ((animal *)param)->num_legs);
+    printf("I have %d legs\n", ((dog *)param)->num_legs);
 }
 
-void dog_Ctor(void *my_dog)
+static void dog_CtorIMP(void *my_dog)
 {
     (void)my_dog;
     printf("Dog Ctor\n");
@@ -275,23 +322,26 @@ dog *DogCreate(void *space, metadata *data)
 {
     dog *doge = (dog *)space;
 
+    assert(space);
+    assert(data);
+
     if(is_first_dog)
     {
-        dog_static_init();
+        dog_static_initIMP();
         is_first_dog = 0;
     }
-    AnimalCreate(space, data);
-    dog_inst_init();
+    AnimalCreate(space, data, 2);
+    dog_inst_initIMP();
     doge->num_legs = 4;
-    dog_Ctor(doge);
+    dog_CtorIMP(doge);
 
     return doge;
 }
 
 /******************/
 
-void cat_Ctor(void *my_cat);
-void cat_Ctor_color(void *my_cat, char *color);
+static void cat_CtorIMP(void *my_cat);
+static void cat_Ctor_colorIMP(void *my_cat, char *color);
 void cat_toString(void *param);
 void cat_finalize(void *param);
 int is_first_cat = 1;
@@ -303,11 +353,10 @@ typedef struct
     int num_masters;
 }cat;
 
-vfunc cat_vtable[8] = {Object_equals, 
+vfunc cat_vtable[7] = {Object_equals, 
                        cat_toString, 
                        Object_hashCode, 
                        cat_finalize,
-                       animal_showCounter, 
                        animal_sayHello,
                        animal_getNumMasters};
 
@@ -317,34 +366,43 @@ void cat_toString(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
 
+    assert(param);
+
     sprintf((char *)wrapper->return_val, 
             "Cat with ID: %d\n", 
             ((cat *)wrapper->this)->animal.id);
 }
 void cat_finalize(void *param)
 {
-    cat *ani = ((method_wrapper *)param)->this;
-    printf("finalize Cat with ID: %d\n", ani->animal.id);
+    assert(param);
+
+    printf("finalize Cat with ID: %d\n",
+            ((cat *)((method_wrapper *)param)->this)->animal.id);
     animal_finalize(param);
 }
 
-void cat_Ctor(void *my_cat)
+static void cat_CtorIMP(void *my_cat)
 {
     cat *cato = my_cat;
 
-    cat_Ctor_color(my_cat, "black");
+    assert(my_cat);
+
+    cat_Ctor_colorIMP(my_cat, "black");
     printf("Cat Ctor\n");
     cato->num_masters = 2;
 }
 
-void cat_static_init1()
+static void cat_static_init1IMP()
 {
     printf("Static block Cat \n");
 }
 
-void cat_Ctor_color(void *my_cat, char *color)
+static void cat_Ctor_colorIMP(void *my_cat, char *color)
 {
     cat *cato = my_cat;
+
+    assert(my_cat);
+    assert(color);
 
     strcpy(cato->colors, color);
     printf("Cat Ctor with color: %s\n", color);
@@ -354,22 +412,25 @@ cat *CatCreate(void *space, metadata *data, char *color)
 {
     cat *cato = (cat *)space;
 
+    assert(space);
+    assert(data);
+
     if (is_first_cat)
     {
-        cat_static_init1();
+        cat_static_init1IMP();
         is_first_cat = 0;
     }
 
-    AnimalCreate(space, data);
+    AnimalCreate(space, data, NONE);
 
     cato->num_masters = 5;
     if (NULL == color)
     {
-        cat_Ctor(cato);
+        cat_CtorIMP(cato);
     }
     else
     {
-        cat_Ctor_color(cato, color);
+        cat_Ctor_colorIMP(cato, color);
     }
 
     return cato;
@@ -391,18 +452,18 @@ vfunc legenderyAnimal_vtable[8] = {Object_equals,
                                   legenderyAnimal_toString, 
                                   Object_hashCode, 
                                   legenderyAnimal_finalize,
-                                  animal_showCounter, 
                                   legenderyAnimal_sayHello,
                                   animal_getNumMasters};
+
 metadata legenderyAnimal_metadata = {"legenderyAnimal", sizeof(legenderyAnimal), 
                                     &cat_metadata, &legenderyAnimal_vtable};
 
-void legenderyAnimal_Ctor()
+static void legenderyAnimal_CtorIMP()
 {
     printf("Legendery Ctor\n");
 }
 
-void legend_Initalize1()
+static void legend_Initalize1IMP()
 {
     printf("Static block Legend \n");
 }
@@ -411,6 +472,8 @@ void legenderyAnimal_toString(void *param)
 {
     method_wrapper *wrapper = (method_wrapper *)param;
 
+    assert(param);
+
     sprintf((char *)wrapper->return_val,
             "legenderyAnimal with ID: %d\n", 
             ((legenderyAnimal *)wrapper->this)->cat.animal.id);
@@ -418,9 +481,10 @@ void legenderyAnimal_toString(void *param)
 
 void legenderyAnimal_finalize(void *param)
 {
-    legenderyAnimal *ani = ((method_wrapper *)param)->this;
+    assert(param);
 
-    printf("finalize legenderyAnimal with ID: %d\n", ani->cat.animal.id);
+    printf("finalize legenderyAnimal with ID: %d\n",
+    ((legenderyAnimal *)((method_wrapper *)param)->this)->cat.animal.id);
     cat_finalize(param);
 }
 
@@ -433,13 +497,16 @@ legenderyAnimal *legenderyAnimalCreate(void *space, metadata *data)
 {
     legenderyAnimal *legend = (legenderyAnimal *)space;
 
+    assert(space);
+    assert(data);
+
     if (is_first_legend)
     {
-        legend_Initalize1();
+        legend_Initalize1IMP();
         is_first_legend = 0;
     }
     CatCreate(space, data, NULL);
-    legenderyAnimal_Ctor();
+    legenderyAnimal_CtorIMP();
 
     return legend;
 }
@@ -459,7 +526,7 @@ void *alloc(metadata *data)
 
 void foo(animal *a)
 {
-    char string[100] ={0};
+    char string[BUFFER_SIZE] = {0};
     method_wrapper wrapper = {0};
     wrapper.return_val = string;
     wrapper.this = a;
@@ -486,7 +553,7 @@ int main()
     wrapper.return_val = &num_of_masters;
 
     ani = alloc(&animal_metadata);
-    ani = AnimalCreate(ani, &animal_metadata);
+    ani = AnimalCreate(ani, &animal_metadata, NONE);
 
     doge = alloc(&dog_metadata);
     doge = DogCreate(doge, &dog_metadata);
@@ -516,7 +583,7 @@ int main()
     arrla = legenderyAnimalCreate(arrla, &legenderyAnimal_metadata);
 
     arrani = alloc(&animal_metadata);
-    arrani = AnimalCreate(arrani, &animal_metadata);
+    arrani = AnimalCreate(arrani, &animal_metadata, NONE);
 
     arr[0] = (animal *)arrdog;
     arr[1] = (animal *)arrcat;
