@@ -1,4 +1,4 @@
-package slist;
+package il.co.ilrd.slist;
 
 import org.junit.After;
 import org.junit.Assert;

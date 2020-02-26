@@ -1,4 +1,4 @@
-package complexnumber;
+package il.co.ilrd.complex_number;
 import java.util.regex.*; 
 
 public class ComplexNumber implements Comparable<ComplexNumber> {

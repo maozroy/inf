@@ -1,4 +1,4 @@
-package slist;
+package il.co.ilrd.slist;
 
 public class App {
 	public static void main(String[] args) {

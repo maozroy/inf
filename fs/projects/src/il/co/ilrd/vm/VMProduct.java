@@ -1,4 +1,4 @@
-package ilrd.vm;
+package il.co.ilrd.vm;
 
 public class VMProduct {
 	

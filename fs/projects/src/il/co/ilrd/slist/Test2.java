@@ -1,4 +1,4 @@
-package slist;
+package il.co.ilrd.slist;
 
 import static org.junit.jupiter.api.Assertions.*;
 

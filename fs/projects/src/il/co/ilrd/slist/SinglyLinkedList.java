@@ -1,4 +1,4 @@
-package slist;
+package il.co.ilrd.slist;
 
 public class SinglyLinkedList {
 	Node head = new Node(null, null);
@@ -17,7 +17,7 @@ public class SinglyLinkedList {
 		
 		return (rmNode.getData());
 	}
-
+ 
 	public boolean isEmpty() {
 		return (null == head.next);
 	}

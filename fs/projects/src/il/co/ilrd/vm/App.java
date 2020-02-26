@@ -1,7 +1,7 @@
-package ilrd.vm;
+package il.co.ilrd.vm;
 
 
-import ilrd.vm.VMProduct.Product;
+import il.co.ilrd.vm.VMProduct.Product;
 
 public class App {
 

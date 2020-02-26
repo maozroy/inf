@@ -1,9 +1,9 @@
-package ilrd.vm;
+package il.co.ilrd.vm;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import ilrd.vm.VMProduct.Product;
+import il.co.ilrd.vm.VMProduct.Product;
 
 public class VMachine implements Runnable {
 
