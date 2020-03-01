@@ -6,7 +6,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class Treetest {
+class TreeTest {
 
 	@BeforeAll
 	static void setUpBeforeClass() throws Exception {
@@ -26,7 +26,7 @@ class Treetest {
 
 	@Test
 	void test() {
-		Tree myTree = new Tree("/home/ol78/git");
+		FactoryTree myTree = new FactoryTree("/home/ol78/git");
 		myTree.print();
 	}
 

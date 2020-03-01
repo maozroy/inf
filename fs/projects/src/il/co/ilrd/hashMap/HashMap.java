@@ -3,6 +3,7 @@ import java.util.AbstractCollection;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -12,8 +13,14 @@ import il.co.ilrd.pair.Pair;
 
 public class HashMap<K,V> implements Map<K, V> {
 
-	private List<List<Pair<K, V>>> entries;
-	private int capacity = 10;
+	private List<List<Pair<K, V>>> hash;
+	private final int capacity;
+	private static final int DEFAULT_CAPACITY = 16;
+	private Collection<V> valuesCollection;
+	private Set<K> keyCollection;
+	private Set<Map.Entry<K, V>> setCollection;
+	private int modCounter = 0;
+
 
 	//----------------------------------//
 	
@@ -23,20 +30,23 @@ public class HashMap<K,V> implements Map<K, V> {
 	}
 
 	public HashMap() {
-		initList();
+		this(DEFAULT_CAPACITY);
 	}
 	
 	private void initList() {
-		entries = new ArrayList<List<Pair<K,V>>>(capacity);
-		
+		hash = new ArrayList<List<Pair<K,V>>>(capacity);
+	
 		for(int i = 0 ; i < capacity ; i++) { 
-			entries.add(i, new ArrayList<Pair<K, V>>()); }
+			hash.add(i, new ArrayList<Pair<K, V>>()); 
+		}
 	}
+
 	//----------------------------------//
 	
 	@Override
 	public void clear() {
-		for(List<Pair<K, V>> bucket : entries) {
+		++modCounter;
+		for(List<Pair<K, V>> bucket : hash) {
 			bucket.clear();
 		}
 	}
@@ -59,7 +69,7 @@ public class HashMap<K,V> implements Map<K, V> {
 	
 	@Override
 	public boolean isEmpty() {
-		for(List<Pair<K, V>> bucket : entries) {
+		for(List<Pair<K, V>> bucket : hash) {
 			if(!bucket.isEmpty()) {
 				return false;
 			}
@@ -76,14 +86,6 @@ public class HashMap<K,V> implements Map<K, V> {
 		return entry.getValue();
 	}
 	
-	private Pair<K, V> getPairByKey(Object arg0) {
-		for(Pair<K, V> pair : entries.get(GetBucket(arg0))) {
-			if(pair.getKey().equals(arg0)) {
-				return pair;
-			}
-		}		return null;
-	}
-	
 	@Override
 	public V remove(Object arg0) {
 		Pair<K, V> entry = getPairByKey(arg0);
@@ -91,8 +93,8 @@ public class HashMap<K,V> implements Map<K, V> {
 			return null;
 		}
 		V oldVal = entry.getValue();
-		entries.get(GetBucket(arg0)).remove(entry);
-		
+		hash.get(GetBucket(arg0)).remove(entry);
+		++modCounter;
 		return oldVal;
 	}
 
@@ -100,16 +102,17 @@ public class HashMap<K,V> implements Map<K, V> {
 	public V put(K arg0, V arg1) {
 		int bucket = GetBucket(arg0);
 		
-		for(Pair<K, V> pair : entries.get(bucket)) {
+		for(Pair<K, V> pair : hash.get(bucket)) {
 			if(pair.getKey().equals(arg0)) {
 				V oldVal = pair.getValue();
 				pair.setValue(arg1);
-				
+				++modCounter;
+
 				return oldVal;
 			}
 		}
-		entries.get(bucket).add(Pair.oF(arg0, arg1));
-		
+		hash.get(bucket).add(Pair.oF(arg0, arg1));
+		++modCounter;
 		return null;
 	}
 	
@@ -117,20 +120,25 @@ public class HashMap<K,V> implements Map<K, V> {
 	public void putAll(Map<? extends K, ? extends V> arg0) {
 		for(Map.Entry<? extends K, ? extends V> entryz : 
 			arg0.entrySet()) {
-				put(entryz.getKey(), entryz.getValue()); }
+				put(entryz.getKey(), entryz.getValue()); 
+			}
+		++modCounter;
 	}
 
 	@Override
 	public int size() {
 		int size = 0;
 		
-		for(List<Pair<K, V>> list : entries) {
+		for(List<Pair<K, V>> list : hash) {
 			size += list.size();
 		}
 		return size;
 	}
 	
 	private int GetBucket(Object arg0) {
+		if (null == arg0) {
+			return 0;
+		}
 		return arg0.hashCode() % capacity;
 	}
 	
@@ -138,17 +146,35 @@ public class HashMap<K,V> implements Map<K, V> {
 
 	@Override
 	public Set<Map.Entry<K, V>> entrySet() {
-		return new EntrySet();
+		if (null == setCollection) {
+			setCollection = new EntrySet();
+		}
+		return setCollection;
 	}
 
 	@Override
 	public Set<K> keySet() {
-		return new KeyIterator();
+		if (null == keyCollection) {
+			keyCollection = new KeyIterator();
+		}
+		return keyCollection;
 	}
 
 	@Override
 	public Collection<V> values() {
-		return new ValueIterator();
+		if (null == valuesCollection) {
+			valuesCollection= new ValueIterator();
+		}
+		return valuesCollection;
+	}
+	
+	private Pair<K, V> getPairByKey(Object key) {
+		for(Pair<K, V> pair : hash.get(GetBucket(key))) {
+			if(pair.getKey() == key || pair.getKey().equals(key)) {
+				return pair;
+			}
+		}
+		return null;
 	}
 	
 	private class KeyIterator 
@@ -214,9 +240,11 @@ public class HashMap<K,V> implements Map<K, V> {
 
 		private class EntryIterator implements Iterator<Map.Entry<K, V>> {
 			private Iterator<List<Pair<K, V>>> 
-					bucketIterator = entries.iterator();
+					bucketIterator = hash.iterator();
 			private Iterator<Pair<K, V>> 
 					pairIterator = bucketIterator.next().iterator();
+			private int modCheck = modCounter;
+			
 			
 			{ 
 				FindNext(); 
@@ -238,13 +266,21 @@ public class HashMap<K,V> implements Map<K, V> {
 
 			@Override
 			public Entry<K, V> next() {
+				checkMod();
 				Pair<K, V> entry = pairIterator.next();
 				FindNext();
 
 				return entry;
 			}
 			
+			private void checkMod() {
+				if (modCheck != modCounter) {
+					throw new ConcurrentModificationException();
+				}
+			}
+			
 			private void FindNext() {
+			//	pairIterator = bucketIterator.next().iterator();
 				while(bucketIterator.hasNext() && !pairIterator.hasNext()) {
 					pairIterator = bucketIterator.next().listIterator();
 				}				

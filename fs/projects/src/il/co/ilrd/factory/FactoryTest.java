@@ -23,6 +23,11 @@ class FactoryTest {
 		}
 	}
 	class Creature{
+		
+		public Creature creating() {
+			return new Creature();
+		}
+		
 		String breath() {
 			return "air in air out";
 		}
@@ -75,25 +80,28 @@ class FactoryTest {
 
 	@Test
 	void testCreateKD() {
-		Factory<Creature, Integer, Object> creatureFactory = new Factory<>();
-		Function<Object, Animal> createAnimal = (animal) -> new Animal();
-		creatureFactory.add(0, createAnimal);
-		assertEquals("earth air in earth air out", creatureFactory.create(0).breath());
-		creatureFactory.add(1, new Function<Object, Animal>(){
-
-			@Override
-			public Animal apply(Object arg0) {
-				return new Animal();
-			}
-			
-			}
-		);
-		assertEquals("earth air in earth air out", creatureFactory.create(1).breath());
-		creatureFactory.add(11,new fac()::animalcreate);
-		System.out.println(creatureFactory.create(11).breath());
-		creatureFactory.add(12,fac::animalcreatestatic);
-		System.out.println(creatureFactory.create(12).breath());
-		creatureFactory.create(666, new Animal()).breath();
+//		Factory<Creature, Integer, Object> creatureFactory = new Factory<>();
+//		Function<Object, Animal> createAnimal = (animal) -> new Animal();
+//		creatureFactory.add(0, createAnimal);
+//		assertEquals("earth air in earth air out", creatureFactory.create(0).breath());
+//		creatureFactory.add(1, new Function<Object, Animal>(){
+//
+//			@Override
+//			public Animal apply(Object arg0) {
+//				return new Animal();
+//			}
+//			
+//			}
+//		);
+//		assertEquals("earth air in earth air out", creatureFactory.create(1).breath());
+//		creatureFactory.add(11,new fac()::animalcreate);
+//		System.out.println(creatureFactory.create(11).breath());
+//		creatureFactory.add(12,fac::animalcreatestatic);
+//		System.out.println(creatureFactory.create(12).breath());
+//		creatureFactory.create(666, new Animal()).breath();
+		Factory<Creature, Integer, Creature> newcreatureFactory = new Factory<>();
+		newcreatureFactory.add(1, Creature::creating);
+		System.out.println(newcreatureFactory.create(1, new Creature()).breath());
 
 		
 	}

@@ -32,6 +32,15 @@ class HashTest {
 	}
 
 	@Test
+	void nullkey() {
+		HashMap<Integer, String> myhash = new HashMap<Integer, String>(2);
+		myhash.put(null, "first");
+		assertEquals(myhash.get(null), "first");
+
+	}
+	
+	
+	@Test
 	void get() {
 		HashMap<Integer, String> myhash = new HashMap<Integer, String>(2);
 		myhash.put(1, "first");
@@ -147,6 +156,10 @@ class HashTest {
 	hashMap2.put(14, "value 3");
 	hashMap2.put(15, "value 3");
 	hashMap1.putAll(hashMap2);
+	for(Map.Entry<Integer, String> entry : hashMap2.entrySet()) {
+		hashMap2.put(14, "value 3");
+
+	}
 	for(String value : hashMap2.values()) {
 		System.out.println(value);
 	}
