@@ -11,8 +11,9 @@ public class mainz {
 		@Override
 		public void run() {
 			for (int i = 0; i < 10000000 ; i++) {
+				synchronized (counter) {  
 					++counter;
-				
+				}
 
 			}
 			System.out.println("counter is: " + counter);
