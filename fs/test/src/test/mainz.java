@@ -1,29 +1,30 @@
 package test;
 
-import java.lang.invoke.VolatileCallSite;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+public class mainz implements Runnable{
+	volatile private static Integer counter = 0;
+		static AtomicInteger atom = new AtomicInteger(0);
 
-public class mainz {
-	volatile static Integer counter = 0;
-
-	class Task implements Runnable{
 		@Override
 		public void run() {
-			for (int i = 0; i < 10000000 ; i++) {
-				synchronized (counter) {  
-					++counter;
-				}
+			//	synchronized (this) {
+			System.out.println(Thread.currentThread());
 
-			}
-			System.out.println("counter is: " + counter);
+					for (int i = 0; i < 10000000 ; i++) {
+						atom.incrementAndGet();
+					}
 
+			//	}	
+
+
+			System.out.println("counter is: " + atom.get());
 		}
-	}
+	
 
 	
 	public static void main(String[] args) throws InterruptedException {
-		Task taskThread = new mainz().new Task();
+		Runnable taskThread = new mainz();
 		Thread thread = new Thread(taskThread);
 		Thread thread2 = new Thread(taskThread);
 		
@@ -31,5 +32,6 @@ public class mainz {
 		thread2.start();
 		thread.join();
 		thread2.join();
+		System.out.println("counter is: " + mainz.atom.get());
 	}
 }
