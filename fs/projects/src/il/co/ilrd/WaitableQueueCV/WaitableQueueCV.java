@@ -1,4 +1,4 @@
-package il.co.ilrd.waitable_queue_cv;
+package il.co.ilrd.WaitableQueueCV;
 
 
 import java.util.Comparator;

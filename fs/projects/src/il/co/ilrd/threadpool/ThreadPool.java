@@ -1,22 +1,26 @@
 package il.co.ilrd.threadpool;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import il.co.ilrd.WaitableQueueSem.WaitableQueueSem;
 
-public class ThreadPool<T> implements Executor {
-	
-	private List<Thread> threadsList = new ArrayList<Thread>();
-	private WaitableQueueSem<ThreadPoolTask> tasksQueue = new WaitableQueueSem<ThreadPoolTask>();;
+
+public class ThreadPool implements Executor {	
+	/*not sure about the list type (maybe list of Thread)*/
+	private List<TPThread> threadsList = new ArrayList<>();
+	private WaitableQueueSem<ThreadPoolTask<?>> tasksQueue = new WaitableQueueSem<>();;
 	private final static int DEAFULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
 	private int numOfThreads;
+	private boolean toRun = true;
 	
 	public enum TaskPriority {
 		MIN,
@@ -28,15 +32,44 @@ public class ThreadPool<T> implements Executor {
 		this(DEAFULT_NUM_THREADS);
 	}
 	
-	public ThreadPool(int num) {
-		
+	public <T> ThreadPool(int num) {
+		numOfThreads = num;
+		AddThreadsToList(numOfThreads);
+		StartList();
 	}
 	
-	public Future<T> submitTask(Callable<T> callable) {
+	private void StartList() {
+		for (TPThread tpThread : threadsList) {
+			tpThread.start();
+		}
+	}
+
+	private void AddThreadsToList(int num) {
+		for (int i = 0; i < num; i++) {
+			threadsList.add(new TPThread());
+		}
+	}
+
+	private class TPThread <T> extends Thread {
+		@Override
+		public void run() {
+			ThreadPoolTask<?> task;
+			while (toRun) {
+				try {
+					task = tasksQueue.dequeue();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	public <T> Future<T> submitTask(Callable<T> callable) {
 		return null;
 	}
 	
-	public Future<T> submitTask(Callable<T> callable, TaskPriority taskPriority) { /* this is the main method*/
+	public <T> Future<T> submitTask(Callable<T> callable, TaskPriority taskPriority) {
 		return null;
 	}
 	
@@ -44,7 +77,7 @@ public class ThreadPool<T> implements Executor {
 		return null;
 	}
 	
-	public Future<T> submitTask(Runnable runnable, TaskPriority taskPriority, T t) {
+	public <T> Future<T> submitTask(Runnable runnable, TaskPriority taskPriority, T t) {
 		return null;
 	}
 	
@@ -73,54 +106,65 @@ public class ThreadPool<T> implements Executor {
 		
 	}
 	
-	public class ThreadPoolTask implements Comparable<T> {
+	private class ThreadPoolTask<T> implements Comparable<T> {	
+		private TaskPriority taskPriority;
+		private Callable<T> callable;
+		private TaskFuture taskFuture = new TaskFuture();
+		private Semaphore runTaskSem = new Semaphore(0);
 		
-		TaskPriority taskPriority;
-		Callable<T> callable;
 		
 		public ThreadPoolTask(TaskPriority taskPriority, Callable<T> callable) {
 			this.taskPriority = taskPriority;
 			this.callable = callable;
 		}
 		
+		public TaskFuture getFuture() {
+			return taskFuture;
+		}
+
 		@Override
 		public int compareTo(T arg0) {
 			// TODO Auto-generated method stub
 			return 0;
 		}
-	}
-	
-	public class TaskFuture implements Future<T> {
-
-		@Override
-		public boolean cancel(boolean arg0) {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public T get() throws InterruptedException, ExecutionException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public T get(long arg0, TimeUnit arg1) throws InterruptedException, ExecutionException, TimeoutException {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public boolean isCancelled() {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public boolean isDone() {
-			// TODO Auto-generated method stub
-			return false;
+		
+		private void runTask() throws Exception {
 		}
 		
+		private class TaskFuture implements Future<T> {
+			private boolean isDone = false;
+			T returnObj;
+			
+			@Override
+			public boolean cancel(boolean arg0) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public T get() throws InterruptedException, ExecutionException {
+				return null;
+			}
+
+			@Override
+			public T get(long arg0, TimeUnit arg1) throws InterruptedException, ExecutionException, TimeoutException {
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public boolean isCancelled() {
+				// TODO Auto-generated method stub
+				return false;
+			}
+
+			@Override
+			public boolean isDone() {
+				return isDone;
+			}
+			
+		}
 	}
+	
+	
 }
