@@ -9,23 +9,29 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import il.co.ilrd.WaitableQueueSem.WaitableQueueSem;
 import il.co.ilrd.hashMap.HashMap;
 
 
 public class ThreadPool implements Executor {	
-	/*not sure about the list type (maybe list of Thread)*/
+	private final static int DEAFULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
+	private final static int MAX_PRIORITY = 10;
+	private final static int MIN_PRIORITY = -10;
+	
 	private List<TPThread> threadsList = new ArrayList<>();
 	private WaitableQueueSem<ThreadPoolTask<?>> tasksQueue = new WaitableQueueSem<>();
-	HashMap<Long, TPThread> threadTable = new HashMap<>();
-	private final static int DEAFULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
-	private int numOfThreads;
-	private boolean toRun = true;
+	private HashMap<Long, TPThread> threadTable = new HashMap<>();
+	
 	private Semaphore pauseSem = new Semaphore(0);
-
+	private Semaphore terminateSem = new Semaphore(0);
+	
+	private int numOfThreads;
+	private boolean IsTerminated = false;
+	private boolean isTerminating = false;
+	
 	
 	public enum TaskPriority {
 		MIN(0),
@@ -56,15 +62,16 @@ public class ThreadPool implements Executor {
 		
 		@Override
 		public void run() {
-			ThreadPoolTask<?> task;
-			try {Thread.sleep(100);} 
-			catch (InterruptedException e1) {e1.printStackTrace();}
-			
-			while (!isKilled && toRun) {
+			ThreadPoolTask<?> task = null;
+
+			while (!isKilled && !IsTerminated) {
 				try {
 					task = tasksQueue.dequeue();
 					task.runTask();
-				} catch (Exception e) {e.printStackTrace();}
+				} catch (Exception e) {
+					task.runTaskSem.release();
+					task.taskFuture.exception = new ExecutionException(e);
+					}
 			}
 		}
 	}
@@ -105,6 +112,11 @@ public class ThreadPool implements Executor {
 			long id = Thread.currentThread().getId();
 			threadTable.get(id).isKilled = true;
 			threadTable.remove(id);
+			threadsList.remove(Thread.currentThread());
+			
+			if(isTerminating) { 
+				terminateSem.release();
+			}
 		}
 	}
 	
@@ -117,9 +129,9 @@ public class ThreadPool implements Executor {
 		}
 	}
 	
-	private void AddKillingTasks(int num) {
+	private void AddKillingTasks(int num, int priority) {
 		for(int i = 0; i < num ;i++) {
-			submitTask(new killMe(), 5);
+			submitTask(new killMe(), priority);
 		}
 	}
 
@@ -131,16 +143,22 @@ public class ThreadPool implements Executor {
 			thread.start();
 		}
 	}
+	private void CheckIfAlive() {
+		if (IsTerminated) {
+			throw new PoolTerminated();
+		}
+	}
+	class PoolTerminated extends RuntimeException{
+		private static final long serialVersionUID = 365623605979666811L;
+		}
 	
 	//------------------------------------------------------------------------------//
 
 	public <T> Future<T> submitTask(Callable<T> callable) {
-	
 		return submitTask(callable, TaskPriority.NORM);
 	}
 	
 	public <T> Future<T> submitTask(Callable<T> callable, TaskPriority taskPriority) {
-
 		return submitTask(callable, taskPriority.getVal());
 	}
 	
@@ -149,15 +167,14 @@ public class ThreadPool implements Executor {
 	}
 	
 	public <T> Future<T> submitTask(Runnable runnable, TaskPriority taskPriority, T t) {
-		
 		return submitTask(new WrapRunVal<T>(runnable, t), taskPriority);
 	}
-	
 	private Future<Void> submitTask(Runnable runnable, int priority) {
 		return submitTask(new WrapRunVoid<Void>(runnable), priority);
 	}
 	
 	private  <T> Future<T> submitTask(Callable<T> callable, int priority) {
+		CheckIfAlive();
 		ThreadPoolTask<T> task = new ThreadPoolTask<T>(priority, callable);
 		tasksQueue.enqueue(task);
 		
@@ -168,8 +185,9 @@ public class ThreadPool implements Executor {
 		if (num > numOfThreads) {
 			AddThreadsToList(num - numOfThreads);
 		}else {
-			AddKillingTasks(-(num - numOfThreads));
+			AddKillingTasks(-(num - numOfThreads), MAX_PRIORITY);
 		}
+		numOfThreads = num;
 	}
 
 	@Override
@@ -179,7 +197,7 @@ public class ThreadPool implements Executor {
 	
 	public void pause() {
 		for (int i = 0; i < numOfThreads; i++) {
-			submitTask(new pauseMe(), 5);
+			submitTask(new pauseMe(), MAX_PRIORITY);
 		}
 	}
 	
@@ -187,12 +205,14 @@ public class ThreadPool implements Executor {
 		pauseSem.release(numOfThreads);
 	}
 	
-	public void shutdown() {
-		toRun = false;
+	public void shutdown() throws InterruptedException {
+		isTerminating = true;
+		AddKillingTasks(numOfThreads, MIN_PRIORITY);
+		IsTerminated = true;
 	}
 
-	public void awaitTermination() {
-		
+	public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException{
+			return terminateSem.tryAcquire(numOfThreads, timeout, unit);
 	}
 	
 	private class ThreadPoolTask<T> implements Comparable<ThreadPoolTask<T>> {	
@@ -200,6 +220,7 @@ public class ThreadPool implements Executor {
 		private Callable<T> callable;
 		private TaskFuture taskFuture = new TaskFuture();
 		private Semaphore runTaskSem = new Semaphore(0);
+		private Lock cancelLock = new ReentrantLock();
 
 		private boolean isCanceled = false;
 		
@@ -218,22 +239,36 @@ public class ThreadPool implements Executor {
 		}
 		
 		private void runTask() throws Exception {
+			cancelLock.lock();
 			taskFuture.isRun = true;
-			taskFuture.returnObj = callable.call();
-			taskFuture.isDone = true;
+			if (!isCanceled) {
+				taskFuture.returnObj = callable.call();	
+				taskFuture.isDone = true;
+			}
 			runTaskSem.release();
+			cancelLock.unlock();
 		}
 		
 		private class TaskFuture implements Future<T> {
 			private boolean isDone = false;
 			private boolean isRun = false;
+			ExecutionException exception;
 
 			T returnObj;
 			
 			@Override
 			public boolean cancel(boolean arg0) {
-				if (!isRun) {
-					isCanceled = true;
+			boolean removed = false;
+				if (!isRun && cancelLock.tryLock()) {
+					try {
+						isCanceled = true;
+						while (!removed) {
+							removed = tasksQueue.remove(ThreadPoolTask.this);
+						}
+					} 
+					catch (InterruptedException e) {e.printStackTrace();}
+					cancelLock.unlock();
+
 				}
 				return isCanceled;
 			}
@@ -241,11 +276,18 @@ public class ThreadPool implements Executor {
 			@Override
 			public T get() throws InterruptedException, ExecutionException {
 				runTaskSem.acquire();
+				if (exception != null) {
+					throw exception;
+				}
+
 				return returnObj;
 			}
 
 			@Override
 			public T get(long quantity, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+				if (exception != null) {
+					throw exception;
+				}
 				runTaskSem.tryAcquire(quantity, unit);
 				return returnObj;
 			}

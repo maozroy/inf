@@ -3,16 +3,33 @@ package il.co.ilrd.threadpool;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import il.co.ilrd.threadpool.ThreadPool.TaskPriority;
 
 public class Main {
 	int runtest = 0;
+	
+	
+	
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
-		ThreadPool pool = new ThreadPool(1);
+		ThreadPool pool = new ThreadPool(0);
 		Future<Integer> future;
-		future = pool.submitTask(new Main().new testSubmithigh());
-		//Thread.sleep(1000);
-		System.out.println(future.get());
-		pool.setNumberOfThread(3);
+		pool.submitTask(new Main().new testSubmitlow(), TaskPriority.MIN);
+		pool.submitTask(new Main().new testSubmitnorm(), TaskPriority.NORM);
+		pool.submitTask(new Main().new testSubmithigh(), TaskPriority.MAX);
+		pool.setNumberOfThread(1);
+		pool.shutdown();
+		System.out.println(pool.awaitTermination(10, TimeUnit.SECONDS));
+
+
+	//	pool.resume();
+//		pool.submitTask(new Main().new testSubmitnorm());
+//		future = pool.submitTask(new Main().new testSubmithigh());
+//		pool.setNumberOfThread(3);
+		
+//		System.out.println(future.get());
+
 	}
 	
 	class testRun implements Runnable{
@@ -38,8 +55,7 @@ public class Main {
 
 		@Override
 		public Integer call() throws Exception {
-			Thread.sleep(1);
-				System.out.println("this a norm");
+				System.err.println("this a norm");
 				return 0;
 		}
 		
@@ -48,7 +64,12 @@ public class Main {
 
 		@Override
 		public Integer call() throws Exception {
-				System.out.println("this a low");
+				System.err.println("this a low");
+				for (int i = 0; i < 1000000; i++) {
+					if (i%1000 == 0) {
+						System.out.println(i);
+					}
+				}
 				return 1;
 		}
 		
@@ -57,11 +78,10 @@ public class Main {
 
 		@Override
 		public Integer call() throws Exception {
-				for(int i = 0; i < 1000000 ; i++) {
-				System.out.println("this a high" + i);
-				}
+				System.err.println("this a high");
 				
-				return 2;
+				
+			return 2;
 		}
 		
 	}
