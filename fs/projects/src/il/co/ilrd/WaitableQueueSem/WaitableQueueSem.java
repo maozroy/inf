@@ -53,7 +53,6 @@ public class WaitableQueueSem <T>{
 			}
 			lock.unlock();
 		}
-		
 		return valueT;
 	}
 	

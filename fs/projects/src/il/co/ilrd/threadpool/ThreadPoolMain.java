@@ -16,10 +16,10 @@ public class ThreadPoolMain {
 		//testPause();
 		//testShutdown();
 		//testSetNumberOfThread();
-		//testSetNumberOfThreadIncrease();
+		testSetNumberOfThreadIncrease();
 		//testCancel();
 		//testAwaitTermination();
-		testExceptionInTask();
+		//testExceptionInTask();
 		
 	}
 	private static void testExceptionInTask() {

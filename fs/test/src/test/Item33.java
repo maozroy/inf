@@ -9,24 +9,28 @@ import java.util.Objects;
 public class Item33 {
 	public static void main(String[] args) {
 		Favorites f = new Item33().new Favorites();
+		Class aClass = Integer.class;
+		f.putFavorite(String.class, "ddd");
 		f.putFavorite(Annotation.class, null);
-//		f.putFavorite(Integer.class, 10);
+		f.putFavorite(Integer.class, 10);
 
-	//	f.putFavorite(Integer.class, 0xcafebabe);
-//		f.putFavorite(Class.class, Favorites.class);
+		f.putFavorite(Integer.class, 0xcafebabe);
+		f.putFavorite(Class.class, Favorites.class);
 		
 		Object favoriteString = f.getFavorite(Annotation.class);
-	//	int favoriteInteger = f.getFavorite(Integer.class);
-		//Class<?> favoriteClass = f.getFavorite(Integer.class);
-		System.out.printf("%s %x %x%n", favoriteString,10, 15);
+		int favoriteInteger = f.getFavorite(Integer.class);
+		Object favoriteClass = f.getFavorite(Integer.class);
+		System.out.printf("%s %x %x%n", favoriteString,favoriteInteger, favoriteClass);
 		
 	}
+	
+
 	
 	
 	public class Favorites {
 		private Map<Class<? extends Annotation>, Object> favorites = new HashMap<>();
 		
-		public <T extends Annotation> void putFavorite(Class<T > type, T instance) {
+		public <T> void putFavorite(Class<? extends Annotation> type, T instance) {
 			favorites.put(Objects.requireNonNull(type), type.cast(instance));
 		}
 		public <T> T getFavorite(Class<T> type) {
