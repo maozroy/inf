@@ -1,4 +1,4 @@
-package filedatabase;
+package il.co.ilrd.filedatabase;
 
 public interface CRUD<K, D> {
 	K Create(D data);

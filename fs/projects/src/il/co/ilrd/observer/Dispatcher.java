@@ -1,5 +1,6 @@
 package il.co.ilrd.observer;
 
+import java.nio.file.WatchEvent;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,9 +16,9 @@ public class Dispatcher<T> {
 		callbackList.remove(callback);
 	}
 	
-	public void updateAll(T param) {
+	public void updateAll(T event) {
 		for (Callback<T> callback : callbackList) {
-			callback.update(param);
+			callback.update(event);
 		}
 	}
 	
