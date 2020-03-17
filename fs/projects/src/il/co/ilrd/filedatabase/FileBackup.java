@@ -6,10 +6,10 @@ public class FileBackup {
 	FileWatcher<?> fileWatcher;
 	ChangeAnalyzer<?> analyzer;
 	
-	public FileBackup(String filePath, String backUpPath) throws IOException, InterruptedException {
+	public FileBackup(String filePath, String backUpPath) throws Exception {
 		fileWatcher = new FileWatcher<>(filePath);
 		analyzer = new ChangeAnalyzer(filePath, backUpPath);
 	}
 	
-	
+		
 }
