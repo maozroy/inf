@@ -1,57 +1,65 @@
 package il.co.ilrd.filedatabase;
 
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.util.function.Consumer;
-import static java.nio.file.StandardWatchEventKinds.*;
-
+import java.nio.file.Paths;
+import java.util.Objects;
+import java.io.BufferedReader;
 import java.io.File;
-
+import java.io.FileReader;
+import java.io.IOException;
 import il.co.ilrd.observer.Callback;
 
-public class ChangesAnalyzer <T> {
+public class ChangesAnalyzer  {
 	
 	private File watchedFile;
 	private File backupFile;
-	private Callback<?> callback;
+	private Callback<Integer> callback;
 	private CRUDFile crudFile;
 	
-	public ChangesAnalyzer(String filePath, String backUpPath) {
-		// TODO Auto-generated constructor stub
+	public ChangesAnalyzer(String filePath, String backUpPath) throws IOException {
+		 FileBackup.checkIfFile(Paths.get(filePath));
+		 FileBackup.checkIfFile(Paths.get(backUpPath));
+		 crudFile = new CRUDFile(backUpPath);
+		 watchedFile = new File(filePath);
+		 backupFile = new File(backUpPath);
 	}
 	
-public void register(FileWatcher fileWatcher) {
-	callback = new Callback<Integer>(this::compareFiles, null);
-	
-	fileWatcher.register(callback);
+	public void register(FileWatcher fileWatcher) throws IOException{
+		initCallback();
+		Objects.requireNonNull(fileWatcher).register(callback);
+	}
 
+	private void compareFiles(Integer integer) throws IOException {
+		BufferedReader watchedBuffer = new BufferedReader(new FileReader(watchedFile));
+		BufferedReader backupBuffer = new BufferedReader(new FileReader(backupFile));
+
+		String lineBackup = backupBuffer.readLine();
+		String lineWatched = watchedBuffer.readLine();
+		
+		while(null != lineWatched) {
+			if((null == lineBackup) || (!lineBackup.equals(lineWatched))) {
+				crudFile.create(lineWatched);
+				lineBackup = backupBuffer.readLine();
+			}
+			lineBackup = backupBuffer.readLine();
+			lineWatched = watchedBuffer.readLine();
+		}
+		watchedBuffer.close();
+		backupBuffer.close();
 	}
 	
-	private void compareFiles(Integer integer) {
-		
+	public void regitser(FileWatcher fileWatcher) {
+		Objects.requireNonNull(fileWatcher).register(callback);
 	}
 	
-	public void regitser(FileWatcher<WatchEvent<?>> fileWatcher) {
-		
-//		Consumer<WatchEvent<?>> myUpdate = (param) -> {
-//			WatchEvent.Kind<?> kind = param.kind();
-//			if (kind.equals(ENTRY_CREATE)){
-//				System.out.println("entry created");
-//			}
-//             else if (ENTRY_MODIFY.equals(kind)) {
-//                System.out.println("Entry was modified on log dir.");
-//            } else if (ENTRY_DELETE.equals(kind)) {
-//                System.out.println("Entry was deleted from log dir.");
-//            }
-//		};
-		fileWatcher.register(callback);
-		
-	}
-	public void unregitser() {
-		callback.getDispatcher().unregister(callback);
-	}	
-	public void unregitser(FileWatcher<StandardWatchEventKinds> fileWatcher) {
-		fileWatcher.unregister(callback);
+	public void unregitser(FileWatcher fileWatcher) {
+		Objects.requireNonNull(fileWatcher).unregister(callback);
 	}
 	
+	private void initCallback() {
+		callback = new Callback<Integer>(
+			arg0 -> {
+				try {compareFiles(arg0);} 
+				catch (IOException e) {e.printStackTrace();}
+			}, null);		
+	}
 }

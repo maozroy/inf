@@ -8,6 +8,7 @@ import static java.nio.file.StandardWatchEventKinds.*;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.Objects;
 
 import il.co.ilrd.observer.*;
 
@@ -21,26 +22,24 @@ public class FileWatcher implements Runnable{
 	public FileWatcher(String filePath) throws IOException {
 		dispatcher = new Dispatcher<Integer>();
         initWatchService(filePath);
-             
         new Thread(this).start();
-		
 	}
 
 	private void initWatchService(String filePath) throws IOException {
 		Path dir = FileSystems.getDefault().getPath(filePath);	
 		watcher = FileSystems.getDefault().newWatchService();
         FileToWatch = dir.getFileName();
-        checkIfFile(dir);
+        FileBackup.checkIfFile(dir);
         dir.getParent().register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
 	}
 
 
 	public void register(Callback<Integer> callback) {
-		dispatcher.register(callback);
+		dispatcher.register(Objects.requireNonNull(callback));
 	}
 	
 	public void unregister(Callback<Integer> callback) {
-		dispatcher.unregister(callback);
+		dispatcher.unregister(Objects.requireNonNull(callback));
 	}
 	
 	private void updateAll(Integer event) {
@@ -54,7 +53,7 @@ public class FileWatcher implements Runnable{
 
 	@Override
 	public void run() {
-		 Path curPath;
+		Path curPath;
         while (isWatching) {
 		    try {
 				key = watcher.take();
@@ -75,10 +74,6 @@ public class FileWatcher implements Runnable{
 		}
     }
 
-	private void checkIfFile(Path dir) throws IOException {
-		if (!dir.toFile().isFile()) {
-			throw new IOException("Not a file");
-		}		
-	}
+
 }
 	
