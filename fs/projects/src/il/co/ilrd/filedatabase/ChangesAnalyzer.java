@@ -36,7 +36,7 @@ public class ChangesAnalyzer  {
 		String lineWatched = watchedBuffer.readLine();
 		
 		while(null != lineWatched) {
-			if((null == lineBackup) || (!lineBackup.equals(lineWatched))) {
+			if((null == lineBackup)) {
 				crudFile.create(lineWatched);
 				lineBackup = backupBuffer.readLine();
 			}
@@ -59,7 +59,9 @@ public class ChangesAnalyzer  {
 		callback = new Callback<Integer>(
 			arg0 -> {
 				try {compareFiles(arg0);} 
-				catch (IOException e) {e.printStackTrace();}
+				catch (IOException e) {
+					e.printStackTrace(); //only initializing callback. not calling the "compare"
+					}
 			}, null);		
 	}
 }
