@@ -1,5 +1,6 @@
 package il.co.ilrd.filedatabase;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
@@ -8,18 +9,18 @@ import java.util.function.Consumer;
 import il.co.ilrd.observer.Callback;
 import il.co.ilrd.observer.Subject;
 
-public class TEst {
+public class TEst<T extends Number> {
 
+	
 	public static void main(String[] args) throws Exception {
-		FileWatcher fileWatcher = new FileWatcher("/home/maoz/test.txt");
-//		ChangesAnalyzer observer =new ChangesAnalyzer(null, null);
-//		observer.regitser(fileWatcher);
-//		Thread.sleep(5000);
-//		System.out.println("end");
-	//	fileWatcher.stopUpdate();
-		ChangesAnalyzer analyzer = new ChangesAnalyzer("/home/maoz/test.txt", "/home/maoz/backup.txt");
-		analyzer.register(fileWatcher);
 		
+	//	FileBackupSharon backup = new FileBackupSharon("/home/maoz/test.txt");
+	//	backup.setBackupFile("/home/maoz/testt.txt");
+	//	backup.startFileBackup();
+		
+	//	backup.stopFileBackup();
+	//	backup.startFileBackup();
+
 	}
 
 }

@@ -12,9 +12,8 @@ import java.util.Objects;
 public class CRUDFile implements CRUD<Integer, String> {
 	private File file;
 	
-	CRUDFile(String fileName) throws IOException {
-		FileBackup.checkIfFile(Paths.get(fileName));
-		file = new File(Objects.requireNonNull(fileName));
+	CRUDFile(File fileName) throws IOException {
+		file = fileName;
 	}
 	@Override
 	public Integer create(String data){
