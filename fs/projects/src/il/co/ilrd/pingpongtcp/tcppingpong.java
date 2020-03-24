@@ -7,7 +7,6 @@ public class tcppingpong {
 
 	public static void main(String[] args) {
 		new Thread(new TcpPongServer()).start();
-		new Thread(new TcpPingClient()).start();
 
 	}
 

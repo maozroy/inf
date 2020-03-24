@@ -12,7 +12,7 @@ public class TcpPingMultiThreadedClient {
 	public static void main(String[] args) throws InterruptedException {
 	
 			Thread.sleep(1000);
-		try(Socket socket = new Socket("maoz-Predator-PH315-51", 24816);
+		try(Socket socket = new Socket("maoz-Predator-PH315-51", 55000);
 		PrintWriter output = new PrintWriter(socket.getOutputStream());
 		BufferedReader input = new BufferedReader(
 								new InputStreamReader(

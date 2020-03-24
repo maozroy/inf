@@ -15,25 +15,27 @@ public class WorkerThreadTCP implements Runnable{
 
 	@Override
 	public void run() {
-		while(true) {
+		String line;
 		try(PrintWriter output = new PrintWriter(socket.getOutputStream());
 				BufferedReader input = new BufferedReader(
 										new InputStreamReader(
 												socket.getInputStream()))){
-			System.out.println(input.readLine() + " worker");
-			output.write(" pong\n");
-			output.flush();
+			while(true) {
+				System.out.println("s");
+				line = input.readLine();
+				if (null == line ) {
+					break;
+				}
+				System.out.println(line);
+				output.write(" pong\n");
+				output.flush();
 			}
-		
-		 catch (IOException e) {
-			 System.out.println("fff");
-			 break;
-			
 		}
+		catch (IOException e) {
+		 System.out.println("exepction " + e);
 		}
 	}
-		//System.out.println("loop ended");
-	}
+}
 
 	
 	
