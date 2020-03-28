@@ -9,17 +9,15 @@ import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class BroadcastPongMultiThreaded {
 	private static final int DEFAULT_TCP_PORT = 55000; 
 	private static final int DEFAULT_UDP_PORT = 24817;
 	private static final int DEFAULT_BROADCAST_PORT = 24818;
-	private static final int BUFFER_SIZE = 256;
+	private static final int DEFAULT_BUFFER_SIZE = 256;
 	private static final String DEFAULT_EXIT = "exit";
-	private static final String PONG_STRING = "pong";
+	private static final String PONG_STRING = "pong\n";
 	
 	private boolean IsClosed = false;
 	private static BroadcastPongMultiThreaded server = 
@@ -27,10 +25,36 @@ public class BroadcastPongMultiThreaded {
 	
 	private LinkedBlockingQueue<Closeable> socketlist = 
 			new LinkedBlockingQueue<Closeable>();
-	private List<Thread> threadList = 
-			new LinkedList<Thread>();
 	
-	public static void main(String[] args) {
+	int tcpPort;
+	int udpPort;
+	int bcPort;
+	int bufferSize;
+	String exitString;
+	String returnString;
+	
+	public BroadcastPongMultiThreaded(int tcpPort, int udpPort, 
+										int bcPort, int bufferSize, 
+										String exitString, String returnString) {
+		this.tcpPort = tcpPort;
+		this.udpPort = udpPort;
+		this.bcPort = bcPort;
+		this.bufferSize = bufferSize;
+		this.exitString = exitString;
+		this.returnString = returnString;
+	}
+	
+	public BroadcastPongMultiThreaded()  {
+		this(DEFAULT_TCP_PORT, DEFAULT_UDP_PORT, 
+				DEFAULT_BROADCAST_PORT, DEFAULT_BUFFER_SIZE, 
+				DEFAULT_EXIT, PONG_STRING);
+	}
+
+	
+
+
+
+	public void startServer(){
 		new Thread(server.new TcpPongMultiThreadedServer()).start();
 		new Thread(server.new UdpPongServer(DEFAULT_UDP_PORT)).start();
 		new Thread(server.new UdpPongServer(DEFAULT_BROADCAST_PORT)).start();
@@ -59,9 +83,6 @@ public class BroadcastPongMultiThreaded {
 			for (Closeable closeable : socketlist) {
 				closeable.close();
 			}
-			for (Thread thread : threadList) {
-				thread.join();
-			}
 		}
 		
 	}
@@ -78,7 +99,6 @@ public class BroadcastPongMultiThreaded {
 					socket = serverSocket.accept();
 					socketlist.add(socket);
 					thread = new Thread(new WorkerThreadTCP(socket));
-					threadList.add(thread);
 					thread.start();
 				}
 			}catch (SocketException e) {
@@ -102,16 +122,15 @@ public class BroadcastPongMultiThreaded {
 
 		@Override
 		public void run() {
-			byte[] buffer;
-			DatagramPacket packet;
+			byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+			DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 			String receivedString = null;
 			
 			try (DatagramSocket socket = new DatagramSocket(port)){
 				socketlist.add(socket);
 				
 				while(!IsClosed) {
-					buffer = new byte[BUFFER_SIZE];
-					packet = new DatagramPacket(buffer, buffer.length);
+					buffer = "".getBytes();
 					getStringFromSocket(socket, packet, receivedString);
 					System.out.println(receivedString);			
 					

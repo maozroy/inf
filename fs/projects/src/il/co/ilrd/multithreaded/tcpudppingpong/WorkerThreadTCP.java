@@ -24,6 +24,7 @@ public class WorkerThreadTCP implements Runnable{
 				System.out.println("s");
 				line = input.readLine();
 				if (null == line ) {
+					socket.close();
 					break;
 				}
 				System.out.println(line);
