@@ -105,8 +105,8 @@ public class SelectorServer{
 	        try {
 	        	selector = Selector.open();
 	        	initSelectorTCP();
-	        	initSelectorUDP(UDPChannel, udpPort);
-	        	initSelectorUDP(BCChannel, bCPort);
+	        	initSelectorUDP(UDPChannel, udpPort, addrs);
+	        	initSelectorUDP(BCChannel, bCPort,InetAddress.getByName("255.255.255.255"));
 	        	
 		        while (true) {
 		            selector.select();
@@ -141,11 +141,11 @@ public class SelectorServer{
 			}			
 		}
 
-		private void initSelectorUDP(DatagramChannel channel, int port) 
+		private void initSelectorUDP(DatagramChannel channel, int port, InetAddress addrs) 
 				throws IOException {
 			channel = DatagramChannel.open();
 			channel.configureBlocking(false);
-			channel.socket().bind(new InetSocketAddress(port));
+			channel.socket().bind(new InetSocketAddress(addrs,port));
 			channel.register(selector, SelectionKey.OP_READ);
 			socketList.add(channel);
 		}
