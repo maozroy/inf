@@ -8,8 +8,8 @@ import java.net.UnknownHostException;
 public class test {
 
 	public static void main(String[] args) throws Exception {
-		SelectorServer server = new SelectorServer();
-		server.RunServer();
+		TamirSelector server = new TamirSelector();
+		server.startServer();
 	}
 
 }

@@ -35,7 +35,7 @@ public class SelectorServer{
 	private MainServer server;
 	private KillServer killService;
 
-	//----CTORS----//
+	//----CTORS----//                                             
 	public SelectorServer(int tcpPort, int udpPort, int bCPort, InetAddress addrs) {
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
@@ -44,6 +44,7 @@ public class SelectorServer{
 		server = new MainServer();
 		killService = new KillServer(EXIT_STRING);
 	}
+	
 	public SelectorServer(InetAddress ip) throws UnknownHostException {
 		this(DEFAULT_TCP_PORT, DEFAULT_UDP_PORT, DEFAULT_BROADCAST_PORT, ip);
 	}
@@ -96,6 +97,7 @@ public class SelectorServer{
 		private DatagramChannel UDPChannel; 
 		private DatagramChannel BCChannel;
 		private LinkedList<Closeable> socketList = new LinkedList<>();
+		ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
 		public void RunServer() 
 				throws IOException {
@@ -105,8 +107,6 @@ public class SelectorServer{
 	        	initSelectorTCP();
 	        	initSelectorUDP(UDPChannel, udpPort);
 	        	initSelectorUDP(BCChannel, bCPort);
-	        	ByteBuffer TCPbuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
-	        	ByteBuffer UDPuffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
 	        	
 		        while (true) {
 		            selector.select();
@@ -116,18 +116,11 @@ public class SelectorServer{
 		            while (iter.hasNext()) {
 		                 SelectionKey key = iter.next();
 		               
-			             if (key.isAcceptable()) {
+			            if (key.isAcceptable()) {
 			            	 registerTCPClient();
 			            }
-		 
-		                if (key.isReadable()) {
-		                	Channel channel = key.channel();
-		                	
-		                	if (channel == TCPChannel) {
-		                		TCPHandler(key, TCPbuffer);
-							} else {
-								UDPHandler(key,UDPuffer);
-							}
+			            else if (key.isReadable()) {
+		                	ReadKey(key);
 		                }
 		                iter.remove();
 		            }
@@ -138,6 +131,16 @@ public class SelectorServer{
 	        }
 		}
 	
+		private void ReadKey(SelectionKey key) throws IOException {
+        	Channel channel = key.channel();
+        	
+        	if (channel == TCPChannel) {
+        		TCPHandler(key, buffer);
+			} else {
+				UDPHandler(key,buffer);
+			}			
+		}
+
 		private void initSelectorUDP(DatagramChannel channel, int port) 
 				throws IOException {
 			channel = DatagramChannel.open();
