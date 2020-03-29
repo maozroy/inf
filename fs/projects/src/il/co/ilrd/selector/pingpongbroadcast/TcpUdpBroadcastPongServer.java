@@ -1,4 +1,4 @@
-package il.co.ilrd.selector.tcpudpserver;
+package il.co.ilrd.selector.pingpongbroadcast;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 
-public class SelectorServer{
+public class TcpUdpBroadcastPongServer{
 	private static final int DEFAULT_TCP_PORT = 50000; 
 	private static final int DEFAULT_UDP_PORT = 24817;
 	private static final int DEFAULT_BROADCAST_PORT = 24818;
@@ -36,7 +36,7 @@ public class SelectorServer{
 	private KillServer killService;
 
 	//----CTORS----//                                             
-	public SelectorServer(int tcpPort, int udpPort, int bCPort, InetAddress addrs) {
+	public TcpUdpBroadcastPongServer(int tcpPort, int udpPort, int bCPort, InetAddress addrs) {
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
 		this.bCPort = bCPort;
@@ -45,11 +45,11 @@ public class SelectorServer{
 		killService = new KillServer(EXIT_STRING);
 	}
 	
-	public SelectorServer(InetAddress ip) throws UnknownHostException {
+	public TcpUdpBroadcastPongServer(InetAddress ip) throws UnknownHostException {
 		this(DEFAULT_TCP_PORT, DEFAULT_UDP_PORT, DEFAULT_BROADCAST_PORT, ip);
 	}
 	
-	public SelectorServer() throws UnknownHostException {
+	public TcpUdpBroadcastPongServer() throws UnknownHostException {
 		this(DEFAULT_TCP_PORT, DEFAULT_UDP_PORT, DEFAULT_BROADCAST_PORT, InetAddress.getLocalHost());
 	}
 	
@@ -105,8 +105,8 @@ public class SelectorServer{
 	        try {
 	        	selector = Selector.open();
 	        	initSelectorTCP();
-	        	initSelectorUDP(UDPChannel, udpPort, addrs);
-	        	initSelectorUDP(BCChannel, bCPort,InetAddress.getByName("255.255.255.255"));
+	        	UDPChannel = initSelectorUDP(UDPChannel, udpPort);
+	        	BCChannel = initSelectorUDP(BCChannel, bCPort);
 	        	
 		        while (true) {
 		            selector.select();
@@ -120,7 +120,14 @@ public class SelectorServer{
 			            	 registerTCPClient();
 			            }
 			            else if (key.isReadable()) {
-		                	ReadKey(key);
+			            	Channel channel = key.channel();
+			            	
+			            	if (channel == TCPChannel) {
+			            		TCPHandler(key, buffer);
+			    			} else {
+			    				UDPHandler(key,buffer);
+			    			}	
+		                	//ReadKey(key);
 		                }
 		                iter.remove();
 		            }
@@ -141,20 +148,22 @@ public class SelectorServer{
 			}			
 		}
 
-		private void initSelectorUDP(DatagramChannel channel, int port, InetAddress addrs) 
+		private DatagramChannel initSelectorUDP(DatagramChannel channel, int port) 
 				throws IOException {
 			channel = DatagramChannel.open();
 			channel.configureBlocking(false);
-			channel.socket().bind(new InetSocketAddress(addrs,port));
+			channel.socket().bind(new InetSocketAddress(port));
 			channel.register(selector, SelectionKey.OP_READ);
 			socketList.add(channel);
+			
+			return channel;
 		}
 		
 		private void initSelectorTCP() 
 				throws IOException {
 			TCPChannel = ServerSocketChannel.open();
 			TCPChannel.configureBlocking(false);
-			TCPChannel.bind(new InetSocketAddress(addrs, tcpPort));
+			TCPChannel.bind(new InetSocketAddress(tcpPort));
 			TCPChannel.register(selector, SelectionKey.OP_ACCEPT);   
 	        socketList.add(TCPChannel);		
 		}

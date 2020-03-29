@@ -9,7 +9,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class UDPClient {
-	private static final int PORT_NUMBER = 24817;
+	private static final int PORT_NUMBER = 24818;
 	private static final int BUFFER_SIZE = 256;
 
 	public static void main(String[] args) throws IOException, InterruptedException {
