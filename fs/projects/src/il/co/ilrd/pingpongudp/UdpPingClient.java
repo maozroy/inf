@@ -43,7 +43,7 @@ public class UdpPingClient {
 	
 	
 public static void main(String[] args) throws SocketException {
-		int portNumber = 24817;
+		int portNumber = 50000;
 		DatagramPacket packet = null;
 		DatagramPacket recievepacket = null;
 		closingThread.start();

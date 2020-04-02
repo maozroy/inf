@@ -26,6 +26,7 @@ public class TcpUdpBroadcastPongServer{
 	private static final int DEFAULT_BROADCAST_PORT = 24818;
 	private static final int DEFAULT_BUFFER_SIZE = 256;
 	private static final String EXIT_STRING = "exit";
+	private static final int DEFAULT_TIMEOUT = 10000;
 	
 	private int tcpPort;
 	private int udpPort;
@@ -55,7 +56,7 @@ public class TcpUdpBroadcastPongServer{
 	
 	public void RunServer() throws IOException {
 		new Thread(killService).start();
-		server.RunServer();
+		new Thread().start();
 	}
 
 	//----KillService----//
@@ -80,27 +81,38 @@ public class TcpUdpBroadcastPongServer{
 		}
 
 		private void closeAll() throws IOException {
-			server.selector.close();			
-			for (Closeable socket : server.socketList) {
-				socket.close();
+			
+			for(SelectionKey key : server.selector.keys()) {
+				key.channel().close();
 			}
+			server.selector.close();
+			
+//			for (Closeable socket : server.socketList) {
+//				socket.close();
+//			}
 		}
 	}
 
 	//----Server---//
-	private class MainServer{
+	private class MainServer implements Runnable{
 		private static final String PONG = "pong";
 		private static final String PING = "ping";
-
+		
 	    private Selector selector;
 		private ServerSocketChannel TCPChannel;
 		private DatagramChannel UDPChannel; 
 		private DatagramChannel BCChannel;
 		private LinkedList<Closeable> socketList = new LinkedList<>();
+		private int numOfChannels;
 		ByteBuffer buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
-		public void RunServer() 
-				throws IOException {
+		@Override
+		public void run() {
+			RunServer();
+		}
+		
+		
+		public void RunServer(){
 
 	        try {
 	        	selector = Selector.open();
@@ -109,7 +121,7 @@ public class TcpUdpBroadcastPongServer{
 	        	BCChannel = initSelectorUDP(BCChannel, bCPort);
 	        	
 		        while (true) {
-		            selector.select();
+		        	selector.select();
 		            Set<SelectionKey> selectedKeys = selector.selectedKeys();
 		            Iterator<SelectionKey> iter = selectedKeys.iterator();
 		            
@@ -120,14 +132,7 @@ public class TcpUdpBroadcastPongServer{
 			            	 registerTCPClient();
 			            }
 			            else if (key.isReadable()) {
-			            	Channel channel = key.channel();
-			            	
-			            	if (channel == TCPChannel) {
-			            		TCPHandler(key, buffer);
-			    			} else {
-			    				UDPHandler(key,buffer);
-			    			}	
-		                	//ReadKey(key);
+		                	ReadKey(key);
 		                }
 		                iter.remove();
 		            }
@@ -135,7 +140,9 @@ public class TcpUdpBroadcastPongServer{
 	        }
 	        catch (ClosedSelectorException e) {
 				return;
-	        }
+	        }catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	
 		private void ReadKey(SelectionKey key) throws IOException {
@@ -163,7 +170,7 @@ public class TcpUdpBroadcastPongServer{
 				throws IOException {
 			TCPChannel = ServerSocketChannel.open();
 			TCPChannel.configureBlocking(false);
-			TCPChannel.bind(new InetSocketAddress(tcpPort));
+			TCPChannel.bind(new InetSocketAddress(addrs,tcpPort));
 			TCPChannel.register(selector, SelectionKey.OP_ACCEPT);   
 	        socketList.add(TCPChannel);		
 		}
@@ -247,5 +254,7 @@ public class TcpUdpBroadcastPongServer{
 			}
 			return "I'm not playing with you";
 		}
+
+
 	}
 }
