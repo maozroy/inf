@@ -46,6 +46,7 @@ public class Server implements Runnable{
 	
 	public void startServer() 
 			throws IOException {
+		started = true;
 		new Thread(new ExitServer()).start();
 		connectHandler.startConnections();
 	}
