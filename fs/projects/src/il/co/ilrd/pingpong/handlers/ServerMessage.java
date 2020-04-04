@@ -7,28 +7,27 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-public class PingPongMessage implements Message<String, Void>, Serializable {
-	String data;
+public class ServerMessage implements Message<ProtocolIndex, Message<?, ?>>, Serializable {
+
+	private static final long serialVersionUID = 2159575795746945290L;
+	ProtocolIndex key;
+	Message<?, ?> message;
 	
-	
-	public PingPongMessage(String data) {
-		this.data = data;
+	public ServerMessage(ProtocolIndex key, Message<?, ?> message) {
+		this.key = key;
+		this.message = message;
 	}
 
 	@Override
-	public String getKey() {
-		return data;
+	public ProtocolIndex getKey() {
+		return key;
 	}
 
 	@Override
-	public Void getData() {
-		return null;
+	public Message<?, ?> getData() {
+		return message;
 	}
-	
-	public String toString() {
-		return getKey();
-	}
-	
+
 	public static byte[] toByteArray(Object obj) throws IOException {
 		byte[] bytes = null;
 		

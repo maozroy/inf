@@ -41,7 +41,7 @@ public class UdpMessageClient {
 	}
 
 	private void sendData(DatagramSocket datagramSocket, DatagramPacket packet) throws IOException {
-		Message<Integer, Message<String, Void>> message = new PingPongMessage(1, "pong");
+		ServerMessage message = new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage("pong"));
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		ObjectOutputStream out = new ObjectOutputStream(bos);
 		out.writeObject(message);
@@ -61,49 +61,15 @@ public class UdpMessageClient {
 	private void printReceivedData(DatagramPacket packet) throws ClassNotFoundException, IOException {
         byte[] data = packet.getData();
         PingPongMessage message = (PingPongMessage) PingPongMessage.toObject(data);
-//        Message<Integer, Message<String, Void>> message = null;
-//        ByteArrayInputStream in = new ByteArrayInputStream(data);
-//    	try {
-//            ObjectInputStream is = new ObjectInputStream(in);
-//
-//			message = (Message<Integer, Message<String, Void>>) is.readObject();
-//		} catch (ClassNotFoundException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
+
     	System.out.println(message);
-		System.out.println("Client channel UDP " + id + " received: " + message.getData().getKey());
+		System.out.println("Client channel UDP " + id + " received: " + message.getKey());
 	}
 }
 	public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
 
 		new UDPClient().new UdpMessageClient().startClient();
-//		PingPongMessage msg = new PingPongMessage(1, "ping");
-//		int portNumber = 50000;
-//		DatagramPacket packet = null;
-//		DatagramPacket recievepacket = null;
-//		try (DatagramSocket socket = new DatagramSocket()){
-//		for(int i = 0; i < 5 ;i++){
-//			
-//			
-//			
-//			
-//				System.out.println("starting loop: " + msg.getData());
-//				byte[] arr = PingPongMessage.toByteArray(msg);
-//				
-//				packet = new DatagramPacket(arr, arr.length, InetAddress.getLocalHost(), portNumber);
-//				socket.send(packet);
-//				
-//				recievepacket = new DatagramPacket(arr, arr.length, InetAddress.getLocalHost(), portNumber);
-//				socket.receive(recievepacket);
-//				
-//				Thread.sleep(500);
-//				msg = (PingPongMessage) PingPongMessage.toObject(recievepacket.getData());
-//				System.out.println("returned msg: "+msg.getData());
-//			}
-//		} catch (Exception e) {}
-//	}
+
 	}
 }
 

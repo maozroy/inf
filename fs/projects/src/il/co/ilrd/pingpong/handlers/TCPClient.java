@@ -14,9 +14,9 @@ public class TCPClient {
 	private final static int PORT_NUM_TCP = 60000;
 
 	public static void main(String[] args) throws IOException, ClassNotFoundException {
-		PingPongMessage message1 = new PingPongMessage(1, "pong");
+		ServerMessage message1 = new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage("pong"));
 		byte[] array1 = PingPongMessage.toByteArray(message1);
-		PingPongMessage message2 = new PingPongMessage(1, "ping");
+		ServerMessage message2 = new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage("ping"));
 		byte[] array2 = PingPongMessage.toByteArray(message2);
 		InetSocketAddress address = new InetSocketAddress(InetAddress.getLocalHost(), PORT_NUM_TCP);
 		ByteBuffer buffer = ByteBuffer.allocate(1000); 

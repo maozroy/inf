@@ -22,33 +22,24 @@ import java.util.LinkedList;
 import java.util.Set;
 
 public class Server implements Runnable{
-	private static final int BUFFER_SIZE = 32768;
-	private static final String KILL_STRING = "exit";
+
 	private ByteBuffer buffer;
-	
 	private boolean started = false;
 	private boolean killed = false;
 	private ConnectionHandler connectHandler = new ConnectionHandler();
 	private MessageHandler msgHandler = new MessageHandler();
 	
-	public Server() {
-		buffer = ByteBuffer.allocate(BUFFER_SIZE);
-	}
-
 	@Override
 	public void run() {
-		try {
-			startServer();
-		} catch (IOException e) {
-			e.getCause();
+		if (!started) {			
+			started = true;
+			new Thread(new ExitServer()).start();
+			try {
+				connectHandler.startConnections();
+			} catch (IOException e) {
+				e.getCause();
+			}
 		}
-	}
-	
-	public void startServer() 
-			throws IOException {
-		started = true;
-		new Thread(new ExitServer()).start();
-		connectHandler.startConnections();
 	}
 	
 	public void stopServer() {
@@ -82,6 +73,7 @@ public class Server implements Runnable{
 	}
 	
 	private class ExitServer implements Runnable{
+		private static final String KILL_STRING = "exit";
 
 		@Override
 		public void run() {
@@ -100,12 +92,16 @@ public class Server implements Runnable{
 	/**********************************************
 	 * Connection Handler
 	 **********************************************/
-	class ConnectionHandler {
+	private class ConnectionHandler {
 		private Selector selector;
-		private LinkedList<Connection> connections = new LinkedList<Connection>();
-		private HashMap<Channel, Connection> channelmap = new HashMap<Channel, Connection>();
+		private LinkedList<Connection> connections = new LinkedList<>();
+		private HashMap<Channel, Connection> channelmap = new HashMap<>();
+		private static final int BUFFER_SIZE = 32768;
+		private static final long TIMEOUT_PRINT = 5000;
 		
 		private void startConnections() throws IOException  {
+			buffer = ByteBuffer.allocate(BUFFER_SIZE);
+
 			try {
 				selector = Selector.open();
 			} catch (IOException e) {
@@ -118,7 +114,9 @@ public class Server implements Runnable{
 
 			try {
 				while (!killed) {
-					selector.select();
+					while (0 == selector.select(TIMEOUT_PRINT)) {
+						System.out.println("Server is waiting");
+					}
 					Set<SelectionKey> selectedKeys = selector.selectedKeys();
 					Iterator<SelectionKey> iter = selectedKeys.iterator();
 					
@@ -204,8 +202,7 @@ public class Server implements Runnable{
 		public void sendMessage(ByteBuffer message, ClientInfo info) {
 			
 			try {
-				message.flip();
-				info.tcpPath.write(message);
+				info.gettcpSocket().write(message);
 			} catch (IOException e) {
 				System.err.println("Sending TCP message to " + info + "Failed");
 			}
@@ -288,9 +285,8 @@ public class Server implements Runnable{
 		
 		@Override
 		public void sendMessage(ByteBuffer message, ClientInfo info) {
-			message.flip();
 			try {
-				udpSocket.send(message, info.udpPath);
+				udpSocket.send(message, info.getudpSocket());
 			} catch (IOException e) {
 				System.err.println("UDP to " + info + "Failed");
 			}
@@ -340,60 +336,45 @@ public class Server implements Runnable{
 	 **********************************************/
 	interface Protocol<K, V> {
 		public void handleMessage(ClientInfo info, Message<?, ?> msg);
-		public int getKey();
 	}
 
 	/**********************************************
 	 * Ping Pong Protocol
 	 **********************************************/
 
-	private class PingPongProtocol<K, V> implements Protocol<K, V> {
-		public static final int PING_PONG_KEY = 1;
+	private class PingPongProtocol implements Protocol<Object, Object> {
 		private static final String PING = "ping";
 		private static final String PONG = "pong";
-		private static final String BAD_INPUT = "nopet";
+		private static final String BAD_INPUT = "nope";
 		
-		private final PingPongMessage pingMsg = new PingPongMessage(PING_PONG_KEY, PING);
-		private final PingPongMessage pongMsg = new PingPongMessage(PING_PONG_KEY, PONG);
-		private final PingPongMessage badMsg = new PingPongMessage(PING_PONG_KEY, BAD_INPUT);
+		private final ServerMessage pingMsg =  new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage(PING));
+		private final ServerMessage pongMsg =  new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage(PONG));
+		private final ServerMessage badMsg =  new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage(BAD_INPUT));
 		
 		@Override
-		public void handleMessage(ClientInfo info, Message<?, ?> message)  {
-			PingPongMessage msgToReturn;
-			String pingOrPong = getPingOrPong(message);
-
-			if (pingOrPong.equals(PING)) {
-				msgToReturn = pingMsg;
-			}else if (pingOrPong.equals(PONG)) {
-				msgToReturn = pongMsg;
-			}
-			else {
-				msgToReturn = badMsg;
-			}
+		public void handleMessage(ClientInfo info, Message<?, ?> message) {
+			ServerMessage msgToReturn = getPingOrPong(message);
 		
 			try {
-				info.connection.sendMessage(buffer.put(PingPongMessage.toByteArray(msgToReturn)), info);
+				buffer.clear();
+				buffer.put(PingPongMessage.toByteArray(msgToReturn));
+				buffer.flip();
+				info.connection.sendMessage(buffer, info);
 			} catch (IOException e) {
 				System.err.println("Message conversion failed");
 			}
-
 		}
 
-		private String getPingOrPong(Message<?, ?> message) {
+		private ServerMessage getPingOrPong(Message<?, ?> message) {
 			String usrdata = ((String) message.getData().toString());
 			
 			if (usrdata.equals(PING)) {
-				return PONG;
+				return pongMsg;
 			}
 			if (usrdata.equals(PONG)) {
-				return PING;
+				return pingMsg;
 			}
-			return BAD_INPUT;
-		}
-
-		@Override
-		public int getKey() {
-			return PING_PONG_KEY;
+			return badMsg;
 		}
 	}
 
@@ -401,18 +382,17 @@ public class Server implements Runnable{
 	 * Message Handler
 	 **********************************************/
 	private class MessageHandler {
-		private HashMap<Integer, Protocol<?, ?>> protocolMap = new HashMap<Integer, Protocol<?,?>>();;
+		private HashMap<ProtocolIndex, Protocol<?, ?>> protocolMap = new HashMap<ProtocolIndex, Protocol<?,?>>();;
 		
 		public MessageHandler() {
-			Protocol <?,?> pingPongProtocol = new PingPongProtocol<>();
-			addProtocol(pingPongProtocol, pingPongProtocol.getKey());
+			protocolMap.put(ProtocolIndex.PINGPONG, new PingPongProtocol());
 		}
 
 		void handleMessage(ByteBuffer message, ClientInfo info) {
 			
-			PingPongMessage msg;
+			ServerMessage msg;
 			try {
-				msg = (PingPongMessage) PingPongMessage.toObject(message.array());
+				msg = (ServerMessage) ServerMessage.toObject(message.array());
 				protocolMap.get(msg.getKey()).handleMessage(info, (Message<?, ?>) msg);
 			} catch (ClassNotFoundException e) {
 				System.err.println("Protocol Not Found");
@@ -421,32 +401,36 @@ public class Server implements Runnable{
 				System.err.println("Message Decryption failed");
 			}
 		}
-
-		private void addProtocol(Protocol<?, ?> protocol, int key) {
-			protocolMap.put(key, protocol);
-		}
 	}
 	/***********************************************
 	 * Client info
 	 **********************************************/
 	private class ClientInfo{
-		private SocketChannel tcpPath;
-		private SocketAddress udpPath;
+		private SocketChannel tcpSocket;
+		private SocketAddress udpSocket;
 		private Connection connection;
 		
-		public ClientInfo(SocketAddress udpPath, Connection connection) {
-			this.udpPath = udpPath;
+		public SocketChannel gettcpSocket() {
+			return tcpSocket;
+		}
+
+		public SocketAddress getudpSocket() {
+			return udpSocket;
+		}
+
+		public ClientInfo(SocketAddress udpSocket, Connection connection) {
+			this.udpSocket = udpSocket;
 			this.connection = connection;
 		}
 		
-		public ClientInfo(SocketChannel tcpPath, Connection connection) {
-			this.tcpPath = tcpPath;
+		public ClientInfo(SocketChannel tcpSocket, Connection connection) {
+			this.tcpSocket = tcpSocket;
 			this.connection = connection;
 		}
 
 		@Override
 		public String toString() {
-			return "ClientInfo [tcpPath = " + tcpPath + ", udpPath = " + udpPath + ", connection = " + connection + "]";
+			return "ClientInfo [tcpSocket = " + tcpSocket + ", udpSocket = " + udpSocket + ", connection = " + connection + "]";
 		}
 	}
 }
