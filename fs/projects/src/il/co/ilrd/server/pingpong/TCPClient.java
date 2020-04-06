@@ -1,4 +1,4 @@
-package il.co.ilrd.pingpong.handlers;
+package il.co.ilrd.server.pingpong;
 
 
 import java.io.BufferedReader;
@@ -10,13 +10,16 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 
+import il.co.ilrd.server.general.ProtocolType;
+import il.co.ilrd.server.general.ServerMessage;
+
 public class TCPClient {
 	private final static int PORT_NUM_TCP = 60000;
 
 	public static void main(String[] args) throws IOException, ClassNotFoundException {
-		ServerMessage message1 = new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage("pong"));
+		ServerMessage message1 = new ServerMessage(ProtocolType.PINGPONG, new PingPongMessage("pong"));
 		byte[] array1 = PingPongMessage.toByteArray(message1);
-		ServerMessage message2 = new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage("ping"));
+		ServerMessage message2 = new ServerMessage(ProtocolType.PINGPONG, new PingPongMessage("ping"));
 		byte[] array2 = PingPongMessage.toByteArray(message2);
 		InetSocketAddress address = new InetSocketAddress(InetAddress.getLocalHost(), PORT_NUM_TCP);
 		ByteBuffer buffer = ByteBuffer.allocate(1000); 

@@ -1,4 +1,4 @@
-package il.co.ilrd.pingpong.handlers;
+package il.co.ilrd.server.pingpong;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -9,6 +9,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+
+import il.co.ilrd.server.general.ProtocolType;
+import il.co.ilrd.server.general.ServerMessage;
 
 
 public class UDPClient {
@@ -41,7 +44,7 @@ public class UdpMessageClient {
 	}
 
 	private void sendData(DatagramSocket datagramSocket, DatagramPacket packet) throws IOException {
-		ServerMessage message = new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage("pong"));
+		ServerMessage message = new ServerMessage(ProtocolType.PINGPONG, new PingPongMessage("pong"));
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		ObjectOutputStream out = new ObjectOutputStream(bos);
 		out.writeObject(message);

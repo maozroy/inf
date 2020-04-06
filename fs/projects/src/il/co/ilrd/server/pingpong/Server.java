@@ -1,4 +1,4 @@
-package il.co.ilrd.pingpong.handlers;
+package il.co.ilrd.server.pingpong;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -20,6 +20,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
+
+import il.co.ilrd.server.general.Message;
+import il.co.ilrd.server.general.ProtocolType;
+import il.co.ilrd.server.general.ServerMessage;
 
 public class Server implements Runnable{
 
@@ -347,9 +351,9 @@ public class Server implements Runnable{
 		private static final String PONG = "pong";
 		private static final String BAD_INPUT = "nope";
 		
-		private final ServerMessage pingMsg =  new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage(PING));
-		private final ServerMessage pongMsg =  new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage(PONG));
-		private final ServerMessage badMsg =  new ServerMessage(ProtocolIndex.PINGPONG, new PingPongMessage(BAD_INPUT));
+		private final ServerMessage pingMsg =  new ServerMessage(ProtocolType.PINGPONG, new PingPongMessage(PING));
+		private final ServerMessage pongMsg =  new ServerMessage(ProtocolType.PINGPONG, new PingPongMessage(PONG));
+		private final ServerMessage badMsg =  new ServerMessage(ProtocolType.PINGPONG, new PingPongMessage(BAD_INPUT));
 		
 		@Override
 		public void handleMessage(ClientInfo info, Message<?, ?> message) {
@@ -382,10 +386,10 @@ public class Server implements Runnable{
 	 * Message Handler
 	 **********************************************/
 	private class MessageHandler {
-		private HashMap<ProtocolIndex, Protocol<?, ?>> protocolMap = new HashMap<ProtocolIndex, Protocol<?,?>>();;
+		private HashMap<ProtocolType, Protocol<?, ?>> protocolMap = new HashMap<ProtocolType, Protocol<?,?>>();;
 		
 		public MessageHandler() {
-			protocolMap.put(ProtocolIndex.PINGPONG, new PingPongProtocol());
+			protocolMap.put(ProtocolType.PINGPONG, new PingPongProtocol());
 		}
 
 		void handleMessage(ByteBuffer message, ClientInfo info) {
@@ -398,7 +402,9 @@ public class Server implements Runnable{
 				System.err.println("Protocol Not Found");
 				return;
 			} catch (IOException e) {
-				System.err.println("Message Decryption failed");
+				e.printStackTrace();
+		//		System.err.println("Message Decryption failed");
+
 			}
 		}
 	}

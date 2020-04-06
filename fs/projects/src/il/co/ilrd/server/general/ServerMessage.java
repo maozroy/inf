@@ -1,4 +1,4 @@
-package il.co.ilrd.pingpong.handlers;
+package il.co.ilrd.server.general;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -7,19 +7,19 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-public class ServerMessage implements Message<ProtocolIndex, Message<?, ?>>, Serializable {
+public class ServerMessage implements Message<ProtocolType, Message<?, ?>>, Serializable {
 
 	private static final long serialVersionUID = 2159575795746945290L;
-	ProtocolIndex key;
+	ProtocolType key;
 	Message<?, ?> message;
 	
-	public ServerMessage(ProtocolIndex key, Message<?, ?> message) {
+	public ServerMessage(ProtocolType key, Message<?, ?> message) {
 		this.key = key;
 		this.message = message;
 	}
 
 	@Override
-	public ProtocolIndex getKey() {
+	public ProtocolType getKey() {
 		return key;
 	}
 

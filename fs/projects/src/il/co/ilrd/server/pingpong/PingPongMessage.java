@@ -1,11 +1,14 @@
-package il.co.ilrd.pingpong.handlers;
+package il.co.ilrd.server.pingpong;
 
+import il.co.ilrd.server.general.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+
+import il.co.ilrd.server.general.Message;
 
 public class PingPongMessage implements Message<String, Void>, Serializable {
 	String data;

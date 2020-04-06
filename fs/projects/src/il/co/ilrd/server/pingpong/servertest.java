@@ -1,4 +1,4 @@
-package il.co.ilrd.pingpong.handlers;
+package il.co.ilrd.server.pingpong;
 
 import java.io.IOException;
 import java.net.InetAddress;
