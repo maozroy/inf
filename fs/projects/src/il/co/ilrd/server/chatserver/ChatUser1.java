@@ -9,7 +9,6 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-import org.hamcrest.core.Is;
 
 import il.co.ilrd.server.general.ProtocolPort;
 import il.co.ilrd.server.general.ProtocolType;
@@ -29,7 +28,7 @@ public class ChatUser1 {
 	}
 	
 	private void registerToChat(String userName) throws UnknownHostException, IOException, ClassNotFoundException {
-		socket = SocketChannel.open(new InetSocketAddress(InetAddress.getLocalHost(), PORT_NUM));
+		socket = SocketChannel.open(new InetSocketAddress("172.20.20.9", PORT_NUM));
 		System.out.println("socket is " + socket);
 		message = new ServerMessage(ProtocolType.CHAT_SERVER, 
 				new ChatServerMessage(ChatProtocolKeys.REGISTRATION_REQUEST, userName));

@@ -1,4 +1,4 @@
-package il.co.ilrd.server.chatserver;
+package il.co.ilrd.vpn.chatserver;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -22,7 +22,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
-import il.co.ilrd.server.general.*;
 
 public class ChatServer implements Runnable{
 
@@ -335,17 +334,17 @@ public class ChatServer implements Runnable{
 	 * Protocol
 	 **********************************************/
 	interface Protocol {
-		public void handleMessage(ClientInfo info, Message<?, ?> msg);
+		public void handleMessage(ClientInfo info, GlobalMessage<?, ?> msg);
 	}
 
 	/**********************************************
 	 * Chat Protocol
 	 **********************************************/
 	private class ChatProtocol implements Protocol{
-		private HashMap<ChatProtocolKeys, ChatFunction> funcionMap = new HashMap<>();
+		private HashMap<GlobalChatProtocolKeys, ChatFunction> funcionMap = new HashMap<>();
 		private LinkedList<ChatClientInfo> userList = new LinkedList<>();
-		private ServerMessage defaultError = new ServerMessage(ProtocolType.CHAT_SERVER, 
-				new ChatServerMessage(ChatProtocolKeys.ERROR_MESSAGE, "User Does not exist"));
+		private GlobalServerMessage defaultError = new GlobalServerMessage(GlobalProtocolType.CHAT_SERVER, 
+				new GlobalChatServerMessage(GlobalChatProtocolKeys.ERROR_MESSAGE, "User Does not exist"));
 		
 		private static final String USER_NOT_FOUND = "User Not Found";
 		private static final String WRONG_KEY = "Key used is inaccurate";
@@ -353,38 +352,38 @@ public class ChatServer implements Runnable{
 		
 		public ChatProtocol() {
 			WrongHandler wrongHandler = new WrongHandler();
-			funcionMap.put(ChatProtocolKeys.REGISTRATION_REQUEST, new RegistrationRequest());
-			funcionMap.put(ChatProtocolKeys.MESSAGE, new SendingMessage());
-			funcionMap.put(ChatProtocolKeys.REMOVE_REQUEST, new RemoveRequest());
-			funcionMap.put(ChatProtocolKeys.REGISTRATION_ACK, wrongHandler);
-			funcionMap.put(ChatProtocolKeys.REGISTRATION_REFUSE, wrongHandler);
-			funcionMap.put(ChatProtocolKeys.NEW_CLIENT_REGISTRATION, wrongHandler);
-			funcionMap.put(ChatProtocolKeys.BROADCAST_MESSAGE, wrongHandler);
-			funcionMap.put(ChatProtocolKeys.ERROR_MESSAGE, wrongHandler);
+			funcionMap.put(GlobalChatProtocolKeys.REGISTRATION_REQUEST, new RegistrationRequest());
+			funcionMap.put(GlobalChatProtocolKeys.MESSAGE, new SendingMessage());
+			funcionMap.put(GlobalChatProtocolKeys.REMOVE_REQUEST, new RemoveRequest());
+			funcionMap.put(GlobalChatProtocolKeys.REGISTRATION_ACK, wrongHandler);
+			funcionMap.put(GlobalChatProtocolKeys.REGISTRATION_REFUSE, wrongHandler);
+			funcionMap.put(GlobalChatProtocolKeys.NEW_CLIENT_REGISTRATION, wrongHandler);
+			funcionMap.put(GlobalChatProtocolKeys.BROADCAST_MESSAGE, wrongHandler);
+			funcionMap.put(GlobalChatProtocolKeys.ERROR_MESSAGE, wrongHandler);
 		}
 		
 		@Override
-		public void handleMessage(ClientInfo info, Message<?, ?> msg) {
+		public void handleMessage(ClientInfo info, GlobalMessage<?, ?> msg) {
 			
-			if (info.connection.getPort() != ProtocolPort.CHAT_PROTOCOL_PORT.getPort()) {
+			if (info.connection.getPort() != GlobalProtocolPort.CHAT_PROTOCOL_PORT.getPort()) {
 				System.err.println("Port/ProtocolKey combination is wrong");
 				SetMessage(defaultError, "Wrong port used to call Chat. please use " + 
-																		ProtocolPort.CHAT_PROTOCOL_PORT.getPort() + "instead" + 
+																		GlobalProtocolPort.CHAT_PROTOCOL_PORT.getPort() + "instead" + 
 																		info.connection.getPort());
 				SendMessage(defaultError, info);
 				return;
 			}
 			
-			funcionMap.get(((ChatServerMessage)msg.getData()).getKey()).apply(info,(ChatServerMessage)msg.getData());
+			funcionMap.get(((GlobalChatServerMessage)msg.getData()).getKey()).apply(info,(GlobalChatServerMessage)msg.getData());
 		}
 		
 		private class RegistrationRequest implements ChatFunction{
-			private ServerMessage regAck = new ServerMessage(ProtocolType.CHAT_SERVER, new ChatServerMessage(ChatProtocolKeys.REGISTRATION_ACK, ""));
-			private ServerMessage regRefuse = new ServerMessage(ProtocolType.CHAT_SERVER, new ChatServerMessage(ChatProtocolKeys.REGISTRATION_REFUSE, REG_FAILED));
+			private GlobalServerMessage regAck = new GlobalServerMessage(GlobalProtocolType.CHAT_SERVER, new GlobalChatServerMessage(GlobalChatProtocolKeys.REGISTRATION_ACK, ""));
+			private GlobalServerMessage regRefuse = new GlobalServerMessage(GlobalProtocolType.CHAT_SERVER, new GlobalChatServerMessage(GlobalChatProtocolKeys.REGISTRATION_REFUSE, REG_FAILED));
 			private static final String HAS_JOINED = " Has Joined";
 
 			@Override
-			public void apply(ClientInfo info, ChatServerMessage message) {
+			public void apply(ClientInfo info, GlobalChatServerMessage message) {
 				String requestedUser =  message.getData();
 				
 				try {
@@ -392,7 +391,7 @@ public class ChatServer implements Runnable{
 						SetMessage(regAck, requestedUser);
 						SendMessage(regAck, info);
 						sendToAllUsers(new String().concat(requestedUser).concat(HAS_JOINED), 
-										ChatProtocolKeys.NEW_CLIENT_REGISTRATION);
+										GlobalChatProtocolKeys.NEW_CLIENT_REGISTRATION);
 						userList.add(new ChatClientInfo(info, requestedUser));
 					}else {
 						SendMessage(regRefuse, info);
@@ -404,10 +403,10 @@ public class ChatServer implements Runnable{
 		}
 		
 		private class SendingMessage implements ChatFunction{
-			private ServerMessage bcMsg = new ServerMessage(ProtocolType.CHAT_SERVER, new ChatServerMessage(ChatProtocolKeys.BROADCAST_MESSAGE, ""));
+			private GlobalServerMessage bcMsg = new GlobalServerMessage(GlobalProtocolType.CHAT_SERVER, new GlobalChatServerMessage(GlobalChatProtocolKeys.BROADCAST_MESSAGE, ""));
 
 			@Override
-			public void apply(ClientInfo info, ChatServerMessage message) {
+			public void apply(ClientInfo info, GlobalChatServerMessage message) {
 				if (!isUserExists(info)) {
 					SetMessage(defaultError, USER_NOT_FOUND);
 					SendMessage(defaultError, info);
@@ -415,7 +414,6 @@ public class ChatServer implements Runnable{
 				}
 				
 				SetMessage(bcMsg, findChatClient(info).getUserName() + ": " + message.getData());
-				System.out.println("msg to send: " + bcMsg.getData());
 				for (ChatClientInfo chatClientInfo : userList) {
 					if (info != chatClientInfo.clientInfo) {
 						SendMessage(bcMsg, chatClientInfo.getServerClientInfo());
@@ -437,14 +435,14 @@ public class ChatServer implements Runnable{
 			private static final String HAS_LEFT = " Has Left";
 			
 			@Override
-			public void apply(ClientInfo info, ChatServerMessage message) {
+			public void apply(ClientInfo info, GlobalChatServerMessage message) {
 				
 				ChatClientInfo chatClient = findChatClient(info);
 				
 				try {
 					if (userList.remove(chatClient)) {
 						sendToAllUsers(new String().concat(chatClient.getUserName()).concat(HAS_LEFT), 
-										ChatProtocolKeys.BROADCAST_MESSAGE);
+										GlobalChatProtocolKeys.BROADCAST_MESSAGE);
 					}else {
 						SetMessage(defaultError, USER_NOT_FOUND);
 						SendMessage(defaultError, info);
@@ -457,7 +455,7 @@ public class ChatServer implements Runnable{
 		
 		private class WrongHandler implements ChatFunction{
 			@Override
-			public void apply(ClientInfo info, ChatServerMessage message) {
+			public void apply(ClientInfo info, GlobalChatServerMessage message) {
 				SetMessage(defaultError, WRONG_KEY);
 				SendMessage(defaultError, info);
 			}
@@ -473,23 +471,23 @@ public class ChatServer implements Runnable{
 			return true;
 		}
 		
-		public void SetMessage(ServerMessage dest, ChatServerMessage src) {
-			((ChatServerMessage)dest.getData()).setMessage(src.getData());			
+		public void SetMessage(GlobalServerMessage dest, GlobalChatServerMessage src) {
+			((GlobalChatServerMessage)dest.getData()).setData(src.getData());			
 		}
 
-		private void SetMessage(ServerMessage dest, String src) {
-			((ChatServerMessage)dest.getData()).setMessage(src);
+		private void SetMessage(GlobalServerMessage dest, String src) {
+			((GlobalChatServerMessage)dest.getData()).setData(src);
 		}
 
-		private void sendToAllUsers(String string, ChatProtocolKeys key) 
+		private void sendToAllUsers(String string, GlobalChatProtocolKeys key) 
 				throws IOException {
-			ServerMessage notificationMsg = new ServerMessage(ProtocolType.CHAT_SERVER, 
-											new ChatServerMessage(key, string));
+			GlobalServerMessage notificationMsg = new GlobalServerMessage(GlobalProtocolType.CHAT_SERVER, 
+											new GlobalChatServerMessage(key, string));
 			for (ChatClientInfo clientInfo : userList) {
 				SendMessage(notificationMsg, clientInfo.getServerClientInfo());
 			}
 		}
-		private void SendMessage(ServerMessage notificationMsg, ClientInfo clientInfo) {
+		private void SendMessage(GlobalServerMessage notificationMsg, ClientInfo clientInfo) {
 			ChatClientInfo user = findChatClient(clientInfo);
 			if (!clientInfo.gettcpSocket().isConnected()) {
 				System.out.println(user.getUserName() + " left the Chat");
@@ -497,7 +495,7 @@ public class ChatServer implements Runnable{
 			}
 			try {
 				buffer.clear();
-				buffer.put(ServerMessage.toByteArray(notificationMsg));
+				buffer.put(ObjectCovertUtil.toByteArray(notificationMsg));
 				buffer.flip();
 				clientInfo.connection.sendMessage(buffer, clientInfo);			
 			} catch (IOException e) {
@@ -534,26 +532,26 @@ public class ChatServer implements Runnable{
 	}
 	
 	private interface ChatFunction{
-		public void apply(ClientInfo info, ChatServerMessage message);
+		public void apply(ClientInfo info, GlobalChatServerMessage message);
 	}
 
 	/***********************************************
 	 * Message Handler
 	 **********************************************/
 	private class MessageHandler {
-		private HashMap<ProtocolType, Protocol> protocolMap = new HashMap<ProtocolType, Protocol>();;
+		private HashMap<GlobalProtocolType, Protocol> protocolMap = new HashMap<GlobalProtocolType, Protocol>();;
 		
 		public MessageHandler() {
-			protocolMap.put(ProtocolType.CHAT_SERVER, new ChatProtocol());
+			protocolMap.put(GlobalProtocolType.CHAT_SERVER, new ChatProtocol());
 		}
 
 		void handleMessage(ByteBuffer message, ClientInfo info) {
 
-			ServerMessage msg;
+			GlobalServerMessage msg;
 			try {
-				msg = (ServerMessage) ServerMessage.toObject(message.array());
+				msg = (GlobalServerMessage) ObjectCovertUtil.toObject(message.array());
 				System.out.println("msg recieved: "+msg);
-				protocolMap.get(msg.getKey()).handleMessage(info, (Message<?, ?>) msg);
+				protocolMap.get(msg.getKey()).handleMessage(info, (GlobalMessage<?, ?>) msg);
 			} catch (ClassNotFoundException e) {
 				System.err.println("Protocol Not Found");
 				return;
