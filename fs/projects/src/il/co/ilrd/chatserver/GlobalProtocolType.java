@@ -1,4 +1,4 @@
-package il.co.ilrd.vpn.chatserver;
+package il.co.ilrd.chatserver;
 
 
 public enum GlobalProtocolType {
