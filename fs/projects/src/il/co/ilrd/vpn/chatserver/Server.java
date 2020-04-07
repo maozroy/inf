@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 
-public class ChatServer implements Runnable{
+public class Server implements Runnable{
 
 	private ByteBuffer buffer;
 	private boolean started = false;
