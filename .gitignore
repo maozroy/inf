@@ -3,6 +3,8 @@
 !*.h
 !*.class
 !*.java
+!*.sql
+!*.odt
 !.gitignore
 !makefile
 !/**/
