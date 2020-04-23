@@ -1,4 +1,4 @@
-package il.co.ilrd.DatabaseManagement;
+package il.co.ilrd.databasemanagementserver;
 
 import java.io.Serializable;
 import il.co.ilrd.chatserver.GlobalMessage;
@@ -21,6 +21,14 @@ public class DatabaseManagementMessage implements GlobalMessage<ActionTypeKey, O
 	@Override
 	public Object[] getData() {
 		return data;
+	}
+	
+	public void setKey(ActionTypeKey key) {
+		this.key = key;
+	}
+	
+	public void setData(Object[] data) {
+		this.data = data;
 	}
 	
 	@Override

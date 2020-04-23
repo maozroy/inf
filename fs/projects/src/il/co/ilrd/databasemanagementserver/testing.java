@@ -1,4 +1,4 @@
-package il.co.ilrd.DatabaseManagement;
+package il.co.ilrd.databasemanagementserver;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

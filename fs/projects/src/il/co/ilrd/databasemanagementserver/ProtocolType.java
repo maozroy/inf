@@ -1,4 +1,4 @@
-package il.co.ilrd.DatabaseManagement;
+package il.co.ilrd.databasemanagementserver;
 
 public enum ProtocolType {
 	PINGPONG,
