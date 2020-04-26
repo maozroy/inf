@@ -1,14 +1,16 @@
 package il.co.ilrd.databasemanagementserver;
 
 import java.io.Serializable;
+import java.util.List;
+
 import il.co.ilrd.chatserver.GlobalMessage;
 
-public class DatabaseManagementMessage implements GlobalMessage<ActionTypeKey, Object[]> , Serializable{
+public class DatabaseManagementMessage implements GlobalMessage<ActionTypeKey, List<Object>> , Serializable{
 	private static final long serialVersionUID = 1L;
 	private ActionTypeKey key;
-	private Object[] data;
+	private List<Object> data;
 	
-	public DatabaseManagementMessage (ActionTypeKey key, Object[] data) {
+	public DatabaseManagementMessage (ActionTypeKey key, List<Object> data) {
 		this.key = key;
 		this.data = data;
 	}
@@ -19,7 +21,7 @@ public class DatabaseManagementMessage implements GlobalMessage<ActionTypeKey, O
 	}
 	
 	@Override
-	public Object[] getData() {
+	public List<Object> getData() {
 		return data;
 	}
 	
@@ -27,7 +29,7 @@ public class DatabaseManagementMessage implements GlobalMessage<ActionTypeKey, O
 		this.key = key;
 	}
 	
-	public void setData(Object[] data) {
+	public void setData(List<Object> data) {
 		this.data = data;
 	}
 	

@@ -1,6 +1,5 @@
 package il.co.ilrd.databasemanagementserver;
 
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -10,13 +9,13 @@ import java.util.List;
 
 public class DatabaseManagement {
 	private final static String IOTEVENT_TABLE = "IOTEvent";
-	private Connection connection = null;
+	private java.sql.Connection connection = null;
 	private final String databaseName;
 	private final String url;
 	private final String userName;
 	private final String password;
 	
-	public DatabaseManagement(String databaseName, String url, String userName, String password) throws ClassNotFoundException, SQLException {
+	public DatabaseManagement(String url, String userName, String password, String databaseName) throws ClassNotFoundException, SQLException {
 		this.databaseName = databaseName;
 		this.url = url;
 		this.userName = userName;
@@ -53,7 +52,7 @@ public class DatabaseManagement {
 		String[] items = rawData.split("\\|");
 			createRow(
 					"INSERT INTO " + IOTEVENT_TABLE + " (fk_serial_number, description) " + 
-					"VALUES ('" + items[0] + "', '"+ items[1] + "');"
+					"VALUES (" + items[0] + ", "+ items[1] + items[2] + ");"
 					);
 	}
 	
@@ -167,7 +166,7 @@ public class DatabaseManagement {
 	}
 	
 	private String primaryEqual(String columnName, String key) {
-		return columnName + " = " + "'" + key + "'";
+		return columnName + " = " + key;
 	}
 	
 	private void PopulateList(ArrayList<Object> list, ResultSet resultSet) throws SQLException {

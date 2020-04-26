@@ -13,5 +13,5 @@ public enum DatabaseKeys {
 	UPDATE_FIELD_BY_INDEX,
 	DELETE_ROW,
 	ERROR_MESSAGE,
-	ACK;
+	ACK_MESSAGE;
 }

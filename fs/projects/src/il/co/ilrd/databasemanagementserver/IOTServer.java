@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InvalidObjectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -36,9 +37,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import il.co.ilrd.chatserver.GlobalMessage;
 import il.co.ilrd.server.general.*;
 
-public class Server implements Runnable{
+public class IOTServer implements Runnable{
 
 	private ByteBuffer buffer;
 	private boolean started = false;
@@ -349,65 +351,308 @@ public class Server implements Runnable{
 	 * Protocol
 	 **********************************************/
 	interface Protocol {
-		public void handleMessage(ClientInfo info, Message<?, ?> msg);
+		public void handleMessage(ClientInfo info, GlobalMessage<?, ?> msg);
 	}
 
 	/**********************************************
 	 * DB Protocol
 	 **********************************************/
 private class DBProtocol implements Protocol{
+	private final static String SERVER_URL = "jdbc:mysql://localhost/";
+	private final static String DB_USER = "root";
+	private final static String DB_PASS = "root";
+	
+	private static final String WRONG_PARAMS_USED_STRING = "Params not suitable for key";
+	private static final String NULL_COMPANY_NAME = "Company name cannot be null";
+	private static final String WRONG_PORT_USED = "Used wrong port";
+
+	private final ServerMessage ack_msg = new ServerMessage(ProtocolType.DATABASE_MANAGEMENT, new DatabaseManagementMessage(new ActionTypeKey(null, DatabaseKeys.ACK_MESSAGE), null));
+	private final ServerMessage err_msg = new ServerMessage(ProtocolType.DATABASE_MANAGEMENT, new DatabaseManagementMessage(new ActionTypeKey(null, DatabaseKeys.ERROR_MESSAGE), null));
+	private LinkedList<Object> wrapperList = new LinkedList<Object>();
 	private HashMap<DatabaseKeys, DBFunction> functionMap = new HashMap<>();
 	private HashMap<String, DatabaseManagement> companyMap = new HashMap<>();
+	private List<Object> recievedParams;
 	
-	
-	CREATE_COMPANY_DATABASE,
-	CREATE_TABLE,
-	DELETE_TABLE,
-	CREATE_IOT_EVENT,
-	CREATE_ROW,
-	READ_ROW,
-	READ_FIELD_BY_NAME,
-	READ_FIELD_BY_INDEX,
-	UPDATE_FIELD_BY_NAME,
-	UPDATE_FIELD_BY_INDEX,
-	DELETE_ROW,
-	ERROR_MESSAGE,
-	ACK;
 	public DBProtocol() {
-//		WrongHandler wrongHandler = new WrongHandler();
+		initFunctionMap();
+	}
+
+	@Override
+	public void handleMessage(ClientInfo info, GlobalMessage<?, ?> msg) {
+		String dbName = null;
+		try {
+			dbName = GetCompanyName((DatabaseManagementMessage) msg.getData());
+			if (info.connection.getPort() != ProtocolPort.DATABASE_MANAGEMENT_PORT.getPort()) {
+				setAndSendMessage(err_msg, info, WRONG_PORT_USED, dbName);
+			}else {
+				
+				DatabaseManagementMessage dbMsg = (DatabaseManagementMessage) msg.getData();
+				functionMap.get(dbMsg.getKey().getActionType()).apply(info, dbMsg, dbName);			
+			}
+		} catch (NoComapnyName e) {
+			setAndSendMessage(err_msg, info, NULL_COMPANY_NAME, null);	
+		} catch (SQLException e) {
+			setAndSendMessage(err_msg, info, e.getMessage(), dbName);
+		} catch (ClassCastException | IndexOutOfBoundsException e) {
+			setAndSendMessage(err_msg, info, WRONG_PARAMS_USED_STRING, dbName);
+		}
+	}
+
+	// -- HANDLERS --
+	
+	private class CreateDatabase implements DBFunction{
+		private static final String ACK_STRING_CREATED = "DataBase created";
+		private static final String ACK_STRING_ALREADY_EXISTS = "DataBase already exists";
+
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			if (!companyMap.containsKey(companyName)) {
+				AddDataBaseNoCheck(companyName);
+				setAndSendMessage(ack_msg, info ,ACK_STRING_CREATED, companyName);
+			} else {
+				setAndSendMessage(ack_msg, info ,ACK_STRING_ALREADY_EXISTS, companyName);
+			}	
+		}
+	}
+	
+	private class CreateTable implements DBFunction{
+		private final static String CREATE_SUCCESS = "Table created";
+		
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			AddDataBase(companyName);
+			String sqlCommand = getIndexString(message.getData(), 0);
+			companyMap.get(companyName).createTable(sqlCommand);
+			setAndSendMessage(ack_msg, info, CREATE_SUCCESS, companyName);
+		}
+	}
+	
+	private class CreateRow implements DBFunction{
+		private final static String CREATE_ROW_SUCCESS = "Row Added";
+
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			AddDataBase(companyName);
+			companyMap.get(companyName).createRow(getIndexString(message.getData(), 0));
+			setAndSendMessage(ack_msg, info, CREATE_ROW_SUCCESS, companyName);
+		}
+	}
+	
+	private class CreateIOTEvent implements DBFunction{
+		private final static String IOT_EVENT_SUCCESS = "IOT event added";
+
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+				AddDataBase(companyName);
+				companyMap.get(companyName).createIOTEvent(getIndexString(message.getData(), 0));
+				setAndSendMessage(ack_msg, info, IOT_EVENT_SUCCESS, companyName);
+		}
+	}
+	
+	
+	private class UpdateByName implements DBFunction{
+		private final static String UPDATE_ACK = "Update sucsses";
+		
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			recievedParams = message.getData();
+			AddDataBase(companyName);
+			companyMap.get(companyName).updateField(
+					getIndexString(recievedParams, 0), 
+					getIndexString(recievedParams, 1), 
+					getIndexObject(recievedParams, 2), 
+					getIndexString(recievedParams, 3),
+					getIndexObject(recievedParams, 4));
+			setAndSendMessage(ack_msg, info, UPDATE_ACK, companyName);
+		}	
+	}
+	
+	private class UpdateByIndex implements DBFunction{
+		private final static String UPDATE_ACK = "Update sucsses";
+		
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			recievedParams = message.getData();
+			AddDataBase(companyName);
+			companyMap.get(companyName).updateField(
+					getIndexString(recievedParams, 0), 
+					getIndexString(recievedParams, 1), 
+					getIndexObject(recievedParams, 2), 
+					getIndexInt(recievedParams, 3),
+					getIndexObject(recievedParams, 4));
+			setAndSendMessage(ack_msg, info, UPDATE_ACK, companyName);	
+		}	
+	}
+	
+	private class ReadRow implements DBFunction{
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			recievedParams = message.getData();
+			AddDataBase(companyName);
+			List<Object> returnVal = companyMap.get(companyName).readRow(
+					getIndexString(recievedParams, 0), 
+					getIndexString(recievedParams, 1), 
+					getIndexObject(recievedParams, 2));
+			setAndSendMessage(ack_msg, info, returnVal, companyName);
+		}
+	}
+
+	private class ReadFieldByIndex implements DBFunction{
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			recievedParams = message.getData();
+			AddDataBase(companyName);
+			Object returnVal = companyMap.get(companyName).readField(
+					getIndexString(recievedParams, 0), 
+					getIndexString(recievedParams, 1), 
+					getIndexObject(recievedParams, 2), 
+					getIndexInt(recievedParams, 3));
+			setAndSendMessage(ack_msg, info, returnVal, companyName);
+		}
+	}
+		
+	private class ReadFieldByName implements DBFunction{
+		
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName)
+				throws SQLException {	
+			recievedParams = message.getData();
+			AddDataBase(companyName);
+			Object returnVal = companyMap.get(companyName).readField(
+					getIndexString(recievedParams, 0), 
+					getIndexString(recievedParams, 1), 
+					getIndexObject(recievedParams, 2), 
+					getIndexString(recievedParams, 3));
+			setAndSendMessage(ack_msg, info, returnVal, companyName);	
+		}
+	}
+	
+	private class DeleteRow implements DBFunction{
+		private final static String DELETE_ROW_ACK = "Deleted!";
+		
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			recievedParams = message.getData();
+			AddDataBase(companyName);
+			companyMap.get(companyName).deleteRow(
+					getIndexString(recievedParams, 0), 
+					getIndexString(recievedParams, 1), 
+					getIndexObject(recievedParams, 2));
+			setAndSendMessage(ack_msg, info, DELETE_ROW_ACK, companyName);
+		}
+	}
+	
+	private class DeleteTable implements DBFunction{
+		private final static String DELETE_SUCCESS = "Table deleted";
+		
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) 
+				throws SQLException {	
+			AddDataBase(companyName);
+			String tableName = getIndexString(message.getData(),0);
+			companyMap.get(companyName).deleteTable(tableName);
+			setAndSendMessage(ack_msg, info, DELETE_SUCCESS, companyName);
+		}
+	}	
+	
+	private class WrongKey implements DBFunction{
+		private final static String WRONG_KEY = "Wrong key used";
+		@Override
+		public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) {	
+			setAndSendMessage(err_msg, info, WRONG_KEY, companyName);	
+		}
+	}
+	
+	// -- HELPER METHODS --
+	
+	private void initFunctionMap() {
+		WrongKey wrongKey = new WrongKey();
 		functionMap.put(DatabaseKeys.CREATE_COMPANY_DATABASE, new CreateDatabase());
 		functionMap.put(DatabaseKeys.CREATE_TABLE, new CreateTable());
 		functionMap.put(DatabaseKeys.DELETE_TABLE, new DeleteTable());
 		functionMap.put(DatabaseKeys.CREATE_IOT_EVENT, new CreateIOTEvent());
 		functionMap.put(DatabaseKeys.CREATE_ROW, new CreateRow());
+		functionMap.put(DatabaseKeys.READ_ROW, new ReadRow());
 		functionMap.put(DatabaseKeys.READ_FIELD_BY_NAME, new ReadFieldByName());
 		functionMap.put(DatabaseKeys.READ_FIELD_BY_INDEX, new ReadFieldByIndex());
 		functionMap.put(DatabaseKeys.UPDATE_FIELD_BY_NAME, new UpdateByName());
 		functionMap.put(DatabaseKeys.UPDATE_FIELD_BY_INDEX, new UpdateByIndex());
 		functionMap.put(DatabaseKeys.DELETE_ROW, new DeleteRow());
-		functionMap.put(DatabaseKeys.UPDATE_FIELD_BY_NAME, new UpdateByName());
-		functionMap.put(DatabaseKeys.ERROR_MESSAGE, WrongKey);
-		functionMap.put(DatabaseKeys.ACK, WrongKey);
-		}
-	
-	@Override
-	public void handleMessage(ClientInfo info, Message<?, ?> msg) {
-		if (info.connection.getPort() != ProtocolPort.DATABASE_MANAGEMENT_PORT.getPort()) {
-			//TODO send error msg
-		return;
-		}
-	
-		functionMap.get(((DatabaseManagementMessage)msg.getData()).getKey()).apply(info,(DatabaseManagementMessage)msg.getData());
+		functionMap.put(DatabaseKeys.ERROR_MESSAGE, wrongKey);
+		functionMap.put(DatabaseKeys.ACK_MESSAGE, wrongKey);		
 	}
 	
-	private class CreateDatabase implements DBFunction{
-
-		@Override
-		public void apply(ClientInfo info, DatabaseManagementMessage message) {
-			// TODO Auto-generated method stub
-			
+	
+	private void SendMessage(ClientInfo info, ServerMessage msg) {
+		try {
+			buffer.clear();
+			buffer.put(ConversionUtils.toByteArray(msg));
+			buffer.flip();
+			info.connection.sendMessage(buffer, info);
+		} catch (IOException e) {
+			System.err.println("sending to client: " + info + "Failed");
 		}
-		
+	}
+	
+	private String getIndexString(List<Object> data, int index) throws ClassCastException{
+		return (String)data.get(index);
+	}
+	
+	private Object getIndexObject(List<Object> data, int index) throws ClassCastException{
+		return data.get(index);
+	}
+	
+	private int getIndexInt(List<Object> data, int index) throws ClassCastException{
+		return (int)data.get(index);
+	}
+	
+	private void AddDataBase(String companyName) throws SQLException {
+		if (!companyMap.containsKey(companyName)) {
+			DatabaseManagement newDb = new DatabaseManagement(SERVER_URL, DB_USER, DB_PASS, companyName);
+			companyMap.put(companyName, newDb);		
+		}
+	}
+	
+	private void AddDataBaseNoCheck(String companyName) throws SQLException {
+		DatabaseManagement newDb = new DatabaseManagement(SERVER_URL, DB_USER, DB_PASS, companyName);
+		companyMap.put(companyName, newDb);		
+	}
+
+	private String GetCompanyName(DatabaseManagementMessage message) throws NoComapnyName{
+		String name = message.getKey().getDatabaseName();
+		if (null == name) {
+			throw new NoComapnyName();
+		}
+		return name;
+	}
+
+	private void setAndSendMessage(ServerMessage msg, ClientInfo info, Object data, String companyMame) {
+		wrapperList.add(data);
+		setAndSendMessage(msg,info, wrapperList, companyMame);
+		wrapperList.clear();
+	}
+	
+	private void setAndSendMessage(ServerMessage msg, ClientInfo info, List<Object> data, String companyMame) {
+		((DatabaseManagementMessage)msg.getData()).getKey().setDatabaseName(companyMame);
+		((DatabaseManagementMessage)msg.getData()).setData(data);
+		SendMessage(info, msg);
+	}
+	
+	private class NoComapnyName extends Exception{
+		private static final long serialVersionUID = -3362339935031338949L;
+
+		public NoComapnyName() {
+			super();
+		}
 	}
 	
 	private class DatabaseManagement {
@@ -418,7 +663,7 @@ private class DBProtocol implements Protocol{
 		private final String userName;
 		private final String password;
 		
-		public DatabaseManagement(String databaseName, String url, String userName, String password) throws ClassNotFoundException, SQLException {
+		public DatabaseManagement(String url, String userName, String password, String databaseName)throws SQLException {
 			this.databaseName = databaseName;
 			this.url = url;
 			this.userName = userName;
@@ -455,7 +700,7 @@ private class DBProtocol implements Protocol{
 			String[] items = rawData.split("\\|");
 				createRow(
 						"INSERT INTO " + IOTEVENT_TABLE + " (fk_serial_number, description) " + 
-						"VALUES ('" + items[0] + "', '"+ items[1] + "');"
+						"VALUES (" + items[0] + ", "+ items[1] + items[2] + ");"
 						);
 		}
 		
@@ -518,10 +763,12 @@ private class DBProtocol implements Protocol{
 		
 
 		
-		private void CreateDB() throws SQLException {
-				Statement statement = connection.createStatement();
-				statement.executeUpdate("CERATE DATABASE " + databaseName);			
-				CloseConnection(statement);
+		private void CreateDB() {
+				try {
+					Statement statement = connection.createStatement();
+					statement.executeUpdate("CREATE DATABASE IF NOT EXISTS  " + databaseName);
+					CloseConnection(statement);
+				} catch (SQLException e) {}		
 		}
 		
 		private void CloseConnection(ResultSet resultSet) {
@@ -569,7 +816,7 @@ private class DBProtocol implements Protocol{
 		}
 		
 		private String primaryEqual(String columnName, String key) {
-			return columnName + " = " + "'" + key + "'";
+			return columnName + " = " + key;
 		}
 		
 		private void PopulateList(ArrayList<Object> list, ResultSet resultSet) throws SQLException {
@@ -580,204 +827,9 @@ private class DBProtocol implements Protocol{
 	}
 }
 	
-	private interface DBFunction{
-		public void apply(ClientInfo info, DatabaseManagementMessage message);
-	}
-
-	//		private HashMap<ChatProtocolKeys, ChatFunction> funcionMap = new HashMap<>();
-//		private LinkedList<ChatClientInfo> userList = new LinkedList<>();
-//		private ServerMessage defaultError = new ServerMessage(ProtocolType.CHAT_SERVER, 
-//				new ChatServerMessage(ChatProtocolKeys.ERROR_MESSAGE, "User Does not exist"));
-//		
-//		private static final String USER_NOT_FOUND = "User Not Found";
-//		private static final String WRONG_KEY = "Key used is inaccurate";
-//		private final static String REG_FAILED = "Registration Failed";
-//		
-//		public ChatProtocol() {
-//			WrongHandler wrongHandler = new WrongHandler();
-//			funcionMap.put(ChatProtocolKeys.REGISTRATION_REQUEST, new RegistrationRequest());
-//			funcionMap.put(ChatProtocolKeys.MESSAGE, new SendingMessage());
-//			funcionMap.put(ChatProtocolKeys.REMOVE_REQUEST, new RemoveRequest());
-//			funcionMap.put(ChatProtocolKeys.REGISTRATION_ACK, wrongHandler);
-//			funcionMap.put(ChatProtocolKeys.REGISTRATION_REFUSE, wrongHandler);
-//			funcionMap.put(ChatProtocolKeys.NEW_CLIENT_REGISTRATION, wrongHandler);
-//			funcionMap.put(ChatProtocolKeys.BROADCAST_MESSAGE, wrongHandler);
-//			funcionMap.put(ChatProtocolKeys.ERROR_MESSAGE, wrongHandler);
-//		}
-//		
-//		@Override
-//		public void handleMessage(ClientInfo info, Message<?, ?> msg) {
-//			
-//			if (info.connection.getPort() != ProtocolPort.CHAT_PROTOCOL_PORT.getPort()) {
-//				System.err.println("Port/ProtocolKey combination is wrong");
-//				SetMessage(defaultError, "Wrong port used to call Chat. please use " + 
-//																		ProtocolPort.CHAT_PROTOCOL_PORT.getPort() + "instead" + 
-//																		info.connection.getPort());
-//				SendMessage(defaultError, info);
-//				return;
-//			}
-//			
-//			funcionMap.get(((ChatServerMessage)msg.getData()).getKey()).apply(info,(ChatServerMessage)msg.getData());
-//		}
-//		
-//		private class RegistrationRequest implements ChatFunction{
-//			private ServerMessage regAck = new ServerMessage(ProtocolType.CHAT_SERVER, new ChatServerMessage(ChatProtocolKeys.REGISTRATION_ACK, ""));
-//			private ServerMessage regRefuse = new ServerMessage(ProtocolType.CHAT_SERVER, new ChatServerMessage(ChatProtocolKeys.REGISTRATION_REFUSE, REG_FAILED));
-//			private static final String HAS_JOINED = " Has Joined";
-//
-//			@Override
-//			public void apply(ClientInfo info, ChatServerMessage message) {
-//				String requestedUser =  message.getData();
-//				
-//				try {
-//					if (isUserAvailable(info, requestedUser)) {
-//						SetMessage(regAck, requestedUser);
-//						SendMessage(regAck, info);
-//						sendToAllUsers(new String().concat(requestedUser).concat(HAS_JOINED), 
-//										ChatProtocolKeys.NEW_CLIENT_REGISTRATION);
-//						userList.add(new ChatClientInfo(info, requestedUser));
-//					}else {
-//						SendMessage(regRefuse, info);
-//					}
-//				} catch (IOException e) {
-//					System.err.println("put to Buffer failed");
-//				}
-//			}
-//		}
-//		
-//		private class SendingMessage implements ChatFunction{
-//			private ServerMessage bcMsg = new ServerMessage(ProtocolType.CHAT_SERVER, new ChatServerMessage(ChatProtocolKeys.BROADCAST_MESSAGE, ""));
-//
-//			@Override
-//			public void apply(ClientInfo info, ChatServerMessage message) {
-//				if (!isUserExists(info)) {
-//					SetMessage(defaultError, USER_NOT_FOUND);
-//					SendMessage(defaultError, info);
-//					return;
-//				}
-//				
-//				SetMessage(bcMsg, findChatClient(info).getUserName() + ": " + message.getData());
-//				System.out.println("msg to send: " + bcMsg.getData());
-//				for (ChatClientInfo chatClientInfo : userList) {
-//					if (info != chatClientInfo.clientInfo) {
-//						SendMessage(bcMsg, chatClientInfo.getServerClientInfo());
-//					}
-//				}
-//			}
-//
-//			private boolean isUserExists(ClientInfo info) {
-//				for (ChatClientInfo chatClientInfo : userList) {
-//					if (chatClientInfo.getServerClientInfo().equals(info)) {
-//						return true;
-//					}
-//				}	
-//				return false;
-//			}
-//		}
-//		
-//		private class RemoveRequest implements ChatFunction{
-//			private static final String HAS_LEFT = " Has Left";
-//			
-//			@Override
-//			public void apply(ClientInfo info, ChatServerMessage message) {
-//				
-//				ChatClientInfo chatClient = findChatClient(info);
-//				
-//				try {
-//					if (userList.remove(chatClient)) {
-//						sendToAllUsers(new String().concat(chatClient.getUserName()).concat(HAS_LEFT), 
-//										ChatProtocolKeys.BROADCAST_MESSAGE);
-//					}else {
-//						SetMessage(defaultError, USER_NOT_FOUND);
-//						SendMessage(defaultError, info);
-//					}
-//				} catch (IOException e) {
-//					System.err.println("Sending remove message failed");
-//				}
-//			}
-//		}
-//		
-//		private class WrongHandler implements ChatFunction{
-//			@Override
-//			public void apply(ClientInfo info, ChatServerMessage message) {
-//				SetMessage(defaultError, WRONG_KEY);
-//				SendMessage(defaultError, info);
-//			}
-//		}
-//		
-//		private boolean isUserAvailable(ClientInfo requestingClient, String requestedUser) {
-//			for (ChatClientInfo existingUser : userList) {
-//				if (existingUser.getUserName().equals(requestedUser) || 
-//					requestingClient.gettcpSocket().equals(existingUser.getServerClientInfo().gettcpSocket())) {
-//					return false;
-//				}
-//			}
-//			return true;
-//		}
-//		
-//		public void SetMessage(ServerMessage dest, ChatServerMessage src) {
-//			((ChatServerMessage)dest.getData()).setMessage(src.getData());			
-//		}
-//
-//		private void SetMessage(ServerMessage dest, String src) {
-//			((ChatServerMessage)dest.getData()).setMessage(src);
-//		}
-//
-//		private void sendToAllUsers(String string, ChatProtocolKeys key) 
-//				throws IOException {
-//			ServerMessage notificationMsg = new ServerMessage(ProtocolType.CHAT_SERVER, 
-//											new ChatServerMessage(key, string));
-//			for (ChatClientInfo clientInfo : userList) {
-//				SendMessage(notificationMsg, clientInfo.getServerClientInfo());
-//			}
-//		}
-//		private void SendMessage(ServerMessage notificationMsg, ClientInfo clientInfo) {
-//			ChatClientInfo user = findChatClient(clientInfo);
-//			if (!clientInfo.gettcpSocket().isConnected()) {
-//				System.out.println(user.getUserName() + " left the Chat");
-//				userList.remove(user);
-//			}
-//			try {
-//				buffer.clear();
-//				buffer.put(ServerMessage.toByteArray(notificationMsg));
-//				buffer.flip();
-//				clientInfo.connection.sendMessage(buffer, clientInfo);			
-//			} catch (IOException e) {
-//				System.err.println("Error sending message to " + user.getUserName());
-//			}
-//		}
-//		
-//		private ChatClientInfo findChatClient(ClientInfo info) {
-//			for (ChatClientInfo chatClientInfo : userList) {
-//				if (chatClientInfo.getServerClientInfo().equals(info)){
-//					return chatClientInfo;
-//				}
-//			}
-//			return null;
-//		}
-//		
-//		private class ChatClientInfo{
-//			private ClientInfo clientInfo;
-//			private String userName;
-//			
-//			public ChatClientInfo(ClientInfo clientInfo, String userName) {
-//				this.clientInfo = clientInfo;
-//				this.userName = userName;
-//			}
-//			
-//			public ClientInfo getServerClientInfo() {
-//				return clientInfo;
-//			}
-//	
-//			public String getUserName() {
-//				return userName;
-//			}
-//		}
-//	}
-//	
-//	private interface ChatFunction{
-//		public void apply(ClientInfo info, ChatServerMessage message);
-//	}
+private interface DBFunction{
+	public void apply(ClientInfo info, DatabaseManagementMessage message, String companyName) throws SQLException;
+}
 
 	/***********************************************
 	 * Message Handler
@@ -786,16 +838,16 @@ private class DBProtocol implements Protocol{
 		private HashMap<ProtocolType, Protocol> protocolMap = new HashMap<ProtocolType, Protocol>();;
 		
 		public MessageHandler() {
-			protocolMap.put(ProtocolType.CHAT_SERVER, new DBProtocol());
+			protocolMap.put(ProtocolType.DATABASE_MANAGEMENT, new DBProtocol());
 		}
 
 		void handleMessage(ByteBuffer message, ClientInfo info) {
 
 			ServerMessage msg;
 			try {
-				msg = (ServerMessage) ServerMessage.toObject(message.array());
+				msg = (ServerMessage) ConversionUtils.toObject(message.array());
 				System.out.println("msg recieved: "+msg);
-				protocolMap.get(msg.getKey()).handleMessage(info, (Message<?, ?>) msg);
+				protocolMap.get(msg.getKey()).handleMessage(info, (GlobalMessage<?, ?>) msg);
 			} catch (ClassNotFoundException e) {
 				System.err.println("Protocol Not Found");
 				return;
