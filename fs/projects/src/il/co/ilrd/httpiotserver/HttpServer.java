@@ -29,15 +29,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.gson.*;
+
 import il.co.ilrd.databasemanagementserver.DatabaseKeys;
 import il.co.ilrd.http_message.HttpBuilder;
 import il.co.ilrd.http_message.HttpMethod;
 import il.co.ilrd.http_message.HttpParser;
-import il.co.ilrd.http_message.HttpParser.Header;
 import il.co.ilrd.http_message.HttpStatusCode;
 import il.co.ilrd.http_message.HttpVersion;
-
-import com.google.gson.*;
 
 public class HttpServer implements Runnable{
 
