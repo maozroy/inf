@@ -1,6 +1,5 @@
 package il.co.ilrd.server.chatserver;
 
-import il.co.ilrd.server.general.Message;
 
 import java.io.Serializable;
 

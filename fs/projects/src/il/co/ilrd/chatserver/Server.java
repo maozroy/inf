@@ -94,7 +94,7 @@ public class Server implements Runnable{
 	/**********************************************
 	 * Connection Handler
 	 **********************************************/
-	private class ConnectionHandler {
+	private class ConnectionHandler {	
 		private Selector selector;
 		private LinkedList<Connection> connections = new LinkedList<>();
 		private HashMap<Channel, Connection> channelmap = new HashMap<>();
@@ -185,7 +185,6 @@ public class Server implements Runnable{
 		public void initConnection(Selector selector); 
 		public int getPort();
 		public Closeable getSocket();
-
 	}
 
 	/**********************************************

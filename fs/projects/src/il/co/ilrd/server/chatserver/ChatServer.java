@@ -22,7 +22,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
-import il.co.ilrd.server.general.*;
 
 public class ChatServer implements Runnable{
 

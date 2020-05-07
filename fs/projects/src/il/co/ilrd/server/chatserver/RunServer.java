@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import il.co.ilrd.server.general.ProtocolPort;
 
 public class RunServer {
 

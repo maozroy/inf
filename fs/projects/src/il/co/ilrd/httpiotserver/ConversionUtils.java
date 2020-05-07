@@ -1,34 +1,12 @@
-package il.co.ilrd.server.pingpong;
+package il.co.ilrd.httpiotserver;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 
-
-public class PingPongMessage implements Message<String, Void>, Serializable {
-	String data;
-	
-	
-	public PingPongMessage(String data) {
-		this.data = data;
-	}
-
-	@Override
-	public String getKey() {
-		return data;
-	}
-
-	@Override
-	public Void getData() {
-		return null;
-	}
-	
-	public String toString() {
-		return getKey();
-	}
+public class ConversionUtils {
 	
 	public static byte[] toByteArray(Object obj) throws IOException {
 		byte[] bytes = null;
@@ -49,7 +27,6 @@ public class PingPongMessage implements Message<String, Void>, Serializable {
         	
             obj = ois.readObject();
         }
-
         return obj;
 	}
 }

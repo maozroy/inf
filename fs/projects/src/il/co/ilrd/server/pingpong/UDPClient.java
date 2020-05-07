@@ -10,10 +10,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 
-import il.co.ilrd.server.general.ProtocolType;
-import il.co.ilrd.server.general.ServerMessage;
-
-
 public class UDPClient {
 
 public class UdpMessageClient {

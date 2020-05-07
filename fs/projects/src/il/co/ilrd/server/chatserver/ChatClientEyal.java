@@ -7,9 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.Scanner;
 
-import il.co.ilrd.server.general.ProtocolPort;
-import il.co.ilrd.server.general.ProtocolType;
-import il.co.ilrd.server.general.ServerMessage;
 
 
 public class ChatClientEyal  {

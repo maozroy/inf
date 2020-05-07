@@ -9,11 +9,8 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-import org.hamcrest.core.Is;
 
-import il.co.ilrd.server.general.ProtocolPort;
-import il.co.ilrd.server.general.ProtocolType;
-import il.co.ilrd.server.general.ServerMessage;
+
 public class ChatUser2 {
 	private ByteBuffer buffer = ByteBuffer.allocate(2048); 
 	private ServerMessage message;

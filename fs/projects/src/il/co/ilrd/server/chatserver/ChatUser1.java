@@ -10,9 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 
-import il.co.ilrd.server.general.ProtocolPort;
-import il.co.ilrd.server.general.ProtocolType;
-import il.co.ilrd.server.general.ServerMessage;
+
 
 public class ChatUser1 {
 	private ByteBuffer buffer = ByteBuffer.allocate(2048); 

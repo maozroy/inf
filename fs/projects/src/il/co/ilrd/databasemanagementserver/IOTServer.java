@@ -37,8 +37,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import il.co.ilrd.chatserver.GlobalMessage;
-import il.co.ilrd.server.general.*;
 
 public class IOTServer implements Runnable{
 
@@ -351,7 +349,7 @@ public class IOTServer implements Runnable{
 	 * Protocol
 	 **********************************************/
 	interface Protocol {
-		public void handleMessage(ClientInfo info, GlobalMessage<?, ?> msg);
+		public void handleMessage(ClientInfo info, Message<?, ?> msg);
 	}
 
 	/**********************************************
@@ -378,7 +376,7 @@ private class DBProtocol implements Protocol{
 	}
 
 	@Override
-	public void handleMessage(ClientInfo info, GlobalMessage<?, ?> msg) {
+	public void handleMessage(ClientInfo info, Message<?, ?> msg) {
 		String dbName = null;
 		try {
 			dbName = GetCompanyName((DatabaseManagementMessage) msg.getData());
@@ -847,7 +845,7 @@ private interface DBFunction{
 			try {
 				msg = (ServerMessage) ConversionUtils.toObject(message.array());
 				System.out.println("msg recieved: "+msg);
-				protocolMap.get(msg.getKey()).handleMessage(info, (GlobalMessage<?, ?>) msg);
+				protocolMap.get(msg.getKey()).handleMessage(info, (Message<?, ?>) msg);
 			} catch (ClassNotFoundException e) {
 				System.err.println("Protocol Not Found");
 				return;

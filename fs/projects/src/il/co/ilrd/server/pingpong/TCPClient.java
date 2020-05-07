@@ -10,8 +10,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 
-import il.co.ilrd.server.general.ProtocolType;
-import il.co.ilrd.server.general.ServerMessage;
 
 public class TCPClient {
 	private final static int PORT_NUM_TCP = 60000;

@@ -1,4 +1,4 @@
-package il.co.ilrd.server.pingpong;
+package il.co.ilrd.server.chatserver;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -7,29 +7,27 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+public class ServerMessage implements Message<ProtocolType, Message<?, ?>>, Serializable {
 
-public class PingPongMessage implements Message<String, Void>, Serializable {
-	String data;
+	private static final long serialVersionUID = 55555;
+	private ProtocolType key;
+	private Message<?, ?> message;
 	
-	
-	public PingPongMessage(String data) {
-		this.data = data;
-	}
-
-	@Override
-	public String getKey() {
-		return data;
+	public ServerMessage(ProtocolType key, Message<?, ?> message) {
+		this.key = key;
+		this.message = message;
 	}
 
 	@Override
-	public Void getData() {
-		return null;
+	public ProtocolType getKey() {
+		return key;
 	}
-	
-	public String toString() {
-		return getKey();
+
+	@Override
+	public Message<?, ?> getData() {
+		return message;
 	}
-	
+
 	public static byte[] toByteArray(Object obj) throws IOException {
 		byte[] bytes = null;
 		
@@ -49,7 +47,6 @@ public class PingPongMessage implements Message<String, Void>, Serializable {
         	
             obj = ois.readObject();
         }
-
         return obj;
 	}
 }
