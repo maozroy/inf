@@ -2,6 +2,8 @@ package il.co.ilrd.WaitableQueueCV;
 
 
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -21,6 +23,7 @@ public class WaitableQueueCV <T>{
 	}
 	
 	public void enqueue(T elem) {
+		List l = new LinkedList<T>();
 		lock.lock();
 		{
 			pqueue.add(elem);

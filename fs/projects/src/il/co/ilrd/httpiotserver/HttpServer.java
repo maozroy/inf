@@ -435,8 +435,8 @@ public class HttpServer implements Runnable{
 		private final static String BODY_FIELD_COLUMN_NAME ="columName";
 		private final static String BODY_FIELD_COLUMN_INDEX ="columnIndex";
 
-		GsonBuilder builder = new GsonBuilder();
-		Gson gson = builder.create();
+		private GsonBuilder builder = new GsonBuilder();
+		private Gson gson = builder.create();
 		
 		private HashMap<String, String> responseMap = new HashMap<>();
 		private HashMap<String, DatabaseManagement> companyMap = new HashMap<>();	
