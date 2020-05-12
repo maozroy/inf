@@ -45,6 +45,8 @@ public class HttpServer implements Runnable{
 	private boolean killed = false;
 	private ConnectionHandler connectHandler = new ConnectionHandler();
 	private MessageHandler msgHandler = new MessageHandler();
+	private GsonBuilder builder = new GsonBuilder();
+	private Gson gson = builder.create();
 	
 	@Override
 	public void run() {
@@ -204,7 +206,6 @@ public class HttpServer implements Runnable{
 		public void initConnection(Selector selector); 
 		public int getPort();
 		public Closeable getSocket();
-
 	}
 	
 	/**********************************************
@@ -221,7 +222,6 @@ public class HttpServer implements Runnable{
 			TcpConnection tcpConnection = (TcpConnection) connection;
 			try {
 				SocketChannel client = (SocketChannel) key.channel();
-				System.out.println("IP SENDING IS: " + ((ServerSocketChannel)connection.getSocket()).getLocalAddress());
 
 				if (-1 == client.read(buffer)) {
 					client.close();
@@ -249,8 +249,6 @@ public class HttpServer implements Runnable{
 			}
 			return buffer;
 		}
-
-
 	}
 
 	/**********************************************
@@ -1142,6 +1140,7 @@ public class HttpServer implements Runnable{
 	private class ClientInfo{
 		private SocketChannel tcpSocket;
 		private SocketAddress udpSocket;
+		private InetSocketAddress socketAddress;
 		private Connection connection;
 		
 		public SocketChannel gettcpSocket() {

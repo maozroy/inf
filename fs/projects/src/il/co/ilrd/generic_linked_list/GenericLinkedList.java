@@ -8,7 +8,7 @@ public class GenericLinkedList <E> implements Iterable<E>{
 	private Node<E> head = new Node<>(null, null);
 	private int modCounter = 0;
 
-	private static class Node <N>{
+	private class Node <N>{
 		private Node<N> next;
 		private N data;
 
