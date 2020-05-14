@@ -25,7 +25,7 @@ public class TcpClient2 {
 
 		
 		HashMap<String, String> message = new HashMap<>();
-		message.put("Commandkey", "COMPANY_REGISTRATION");
+		message.put("CommandKey", "COMPANY_REGISTRATION");
 		message.put("Data", "dayumn");
 
 		

@@ -20,13 +20,14 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -38,26 +39,35 @@ import il.co.ilrd.http_message.HttpStatusCode;
 import il.co.ilrd.http_message.HttpVersion;
 
 public class GatewayServer implements Runnable{
-	private static final String COMMAND_KEY = "Commandkey";
+	private static final String COMMAND_KEY = "CommandKey";
 	private static final String DATA = "Data";
-
-	private ArrayBlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(10); 
-	private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 10, 10, TimeUnit.SECONDS, workQueue);
-	private CMDFactory<FactoryCommand, CommandKey, Object> cmdFactory = new CMDFactory<>();
-	private ConnectionsHandler connectionHandler = new ConnectionsHandler();
-	private GatewayMessageHandler messageHandler = new GatewayMessageHandler();
-	private boolean serverStopped = false;
-	private boolean serverStarted = false;
 	private static final int BUFFER_SIZE = 32768;
+	private static final int MAXIMUM_THREADS = 20;
+	private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
+
+
+	private ThreadPoolExecutor threadPool;
+	private CMDFactory<FactoryCommand, CommandKey, Object> cmdFactory;
+	private ConnectionsHandler connectionHandler;
+	private GatewayMessageHandler messageHandler;
 	
 	private GsonBuilder builder = new GsonBuilder();
 	private Gson gson = builder.create();
 	
-
-	
+	private boolean serverStopped = false;
+	private boolean serverStarted = false;
 	
 	public GatewayServer(int numOfThreads) {
-		threadPool.setCorePoolSize(numOfThreads);
+		cmdFactory = new CMDFactory<>();
+		connectionHandler = new ConnectionsHandler();
+		messageHandler = new GatewayMessageHandler();
+		
+			threadPool = new ThreadPoolExecutor(
+					numOfThreads, 
+					MAXIMUM_THREADS, 
+					1, TimeUnit.SECONDS, 
+					new LinkedBlockingQueue<Runnable>());
+		
 		initFactory();
 	}
 	
@@ -67,7 +77,7 @@ public class GatewayServer implements Runnable{
 	}
 	
 	public GatewayServer() {
-		this(0);
+		this(DEFAULT_NUM_THREADS);
 	}
 	
 	public void addHighHttpServer(ServerPort port) {
@@ -99,16 +109,30 @@ public class GatewayServer implements Runnable{
 			System.err.println("Starting connections failed");
 			e.printStackTrace();
 		}
+	}
+	
+	@Override
+	public void run() {
+		start();
 		
 	}
 	
 	public void stop() {
-		serverStopped = true;
-		
+		if (serverStarted) {
+			serverStopped = true;
+			System.out.println("IN STOP");
+			try {
+				connectionHandler.stopConnections();
+				threadPool.shutdown();
+			} catch (IOException e) {
+				System.err.println("stopping server failed");
+				e.printStackTrace();
+			}			
+		}
 	}
 	
 	public void setNumOfThreads(int numOfThread) {
-		threadPool.setMaximumPoolSize(numOfThread);
+		System.out.println(threadPool.getCorePoolSize());
 	}
 	
 	private void checkIfServerStarted() {
@@ -144,7 +168,6 @@ public class GatewayServer implements Runnable{
 					Iterator<SelectionKey> iter = selectedKeys.iterator();
 					
 					while (iter.hasNext()) {
-						System.out.println(iter);
 						SelectionKey key = iter.next();
 						if (key.isValid() && key.channel().isOpen()) {
 							ServerConnection connection = channelmap.get(key.channel());
@@ -178,32 +201,38 @@ public class GatewayServer implements Runnable{
 				tcpClient.configureBlocking(false);
 				tcpClient.register(selector, SelectionKey.OP_READ);
 				channelmap.put(tcpClient, connection);
-				((TcpConnection)connection).socketInfo.put(tcpClient, new ClientInfo(tcpClient, connection));
+				connection.getClientMap().put(tcpClient, new ClientInfo(tcpClient, connection));
 			} catch (IOException e) {
 				System.err.println("TCP Register failed");
 				e.printStackTrace();
 			}
 		}
-	}
+	
+		private void stopConnections() throws IOException {
+			for (ServerConnection serverConnection : connections) {
+				serverConnection.stopServer();
+			}
+			selector.close();
+		}
+	}	
 	
 	private interface ServerConnection {
 		public void initServerConnection(HashMap<Channel, ServerConnection> channelmap, Selector selector) throws IOException;
 		public void handleRequestMessage(SelectionKey key, ServerConnection connection);
-		public void sendResponse(ByteBuffer message, ClientInfo info/*need to decide args*/);
+		public void sendResponse(ByteBuffer message, ClientInfo info);
+		public void stopServer() throws IOException;
+		public Map<SocketChannel, ClientInfo> getClientMap();
 	}
 	
-	private class LowLevelHTTP extends TcpConnection{
-		
-		public LowLevelHTTP(ServerPort port) {
-			super(port);
-			this.port = port.getPort();
-		}
-
+	private class LowLevelHTTP implements ServerConnection{
 		private int port;
 		private ServerSocketChannel tcpSocket;
 		private HashMap<String, String> responseHeader = new HashMap<>();
-
-
+		private Map<SocketChannel, ClientInfo> clientMap = new HashMap<>();
+		
+		public LowLevelHTTP(ServerPort port) {
+			this.port = port.getPort();
+		}
 		
 		@Override
 		public void initServerConnection(HashMap<Channel, ServerConnection> channelmap, Selector selector) {
@@ -224,13 +253,11 @@ public class GatewayServer implements Runnable{
 		public void handleRequestMessage(SelectionKey key, ServerConnection connection) {
 			TcpConnection tcpConnection = (TcpConnection) connection;
 			ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-			System.out.println("handling");
 			try {
 				SocketChannel client = (SocketChannel) key.channel();
 
 				if (!(-1 == client.read(buffer))) {
 					HttpParser parser = new HttpParser(bufferToString(buffer));
-					System.out.println("BODY IS: " + parser.getBody().getBody());
 					messageHandler.handleMessage(stringToBuffer(parser.getBody().getBody()), tcpConnection.socketInfo.get(client));
 				}else {
 					client.close();
@@ -252,7 +279,7 @@ public class GatewayServer implements Runnable{
 						GetResponseHeader(body.length()),
 						body);
 				
-				info.gettcpSocket().write(stringToBuffer(response));
+				info.getTcpSocket().write(stringToBuffer(response));
 				message.clear();
 			} catch (IOException e) {
 				System.err.println("Sending response " + body + " failed");
@@ -260,15 +287,26 @@ public class GatewayServer implements Runnable{
 			}
 		}
 		
-		private Map<String, String> GetResponseHeader(int length) {
-			responseHeader.put("Content-Length", String.valueOf(length));
-			
-			return responseHeader;
-		}
-		
 		@Override
 		public String toString() {
 			return "HttpConnection [" + tcpSocket + "]" ;
+		}
+
+		@Override
+		public void stopServer() throws IOException {
+			try {
+				tcpSocket.close();
+			} catch (NullPointerException e) {}
+		}
+		
+		private Map<String, String> GetResponseHeader(int length) {
+			responseHeader.put("Content-Length", String.valueOf(length));
+			return responseHeader;
+		}
+
+		@Override
+		public Map<SocketChannel, ClientInfo> getClientMap() {
+			return clientMap;
 		}
 	}
 	
@@ -278,7 +316,6 @@ public class GatewayServer implements Runnable{
 		private final static String CONTENT_TYPE = "Content-Type";
 		private final static String CONTENT_JSON = "application/json";
 
-
 		public HighLevelHTTP(ServerPort port) {
 			this.port = port.getPort();
 		}
@@ -286,14 +323,16 @@ public class GatewayServer implements Runnable{
 		@Override
 		public void initServerConnection(HashMap<Channel, ServerConnection> channelmap, Selector selector) throws IOException {
 			httpServer = HttpServer.create(new InetSocketAddress(port), 0);
-			httpServer.createContext("/", new HttpHandler() {
-				
-				@Override
-				public void handle(HttpExchange msg) throws IOException {
-					ByteBuffer buffer = ByteBuffer.wrap(msg.getRequestBody().readAllBytes());
-					messageHandler.handleMessage(buffer, new ClientInfo(msg, HighLevelHTTP.this));					
-				}
-			});
+			httpServer.createContext("/", 
+					new HttpHandler() {
+						@Override
+						public void handle(HttpExchange msg) throws IOException {
+							System.out.println(msg.getRemoteAddress());
+							ByteBuffer buffer = ByteBuffer.wrap(msg.getRequestBody().readAllBytes());
+							messageHandler.handleMessage(buffer, new ClientInfo(msg, HighLevelHTTP.this));					
+						}
+					}
+				);
 			httpServer.start();
 		}
 
@@ -313,6 +352,14 @@ public class GatewayServer implements Runnable{
 
 		@Override
 		public void handleRequestMessage(SelectionKey key, ServerConnection connection) {}
+
+		@Override
+		public void stopServer() {
+			httpServer.stop(1);
+		}
+
+		@Override
+		public Map<SocketChannel, ClientInfo> getClientMap() {return null;}
 	}
 	
 	private class UdpConnection implements ServerConnection{
@@ -359,6 +406,15 @@ public class GatewayServer implements Runnable{
 			}
 			
 		}
+
+		@Override
+		public void stopServer() throws IOException {
+			udpSocket.close();
+			
+		}
+		
+		@Override
+		public Map<SocketChannel, ClientInfo> getClientMap() {return null;}
 		
 	}
 	
@@ -386,23 +442,18 @@ public class GatewayServer implements Runnable{
 			}			
 		}
 
-
-
 		@Override
 		public void sendResponse(ByteBuffer message, ClientInfo info) {
-			System.out.println("sending buffer...");
-			try {
-				info.gettcpSocket().write(message);
-				message.clear();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
+				try {
+					info.getTcpSocket().write(message);
+					message.clear();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 		}
 
 		@Override
 		public void handleRequestMessage(SelectionKey key, ServerConnection connection) {
-			System.out.println("handling tcp");
 			TcpConnection tcpConnection = (TcpConnection) connection;
 			ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 			try {
@@ -419,6 +470,21 @@ public class GatewayServer implements Runnable{
 				buffer.clear();
 			}			
 		}
+
+		@Override
+		public void stopServer() throws IOException {
+			try {
+				tcpSocket.close();
+				
+			} catch (NullPointerException e) {
+				// TODO: handle exception
+			}
+		}
+
+		@Override
+		public Map<SocketChannel, ClientInfo> getClientMap() {
+			return socketInfo;
+		}
 		
 	}
 	
@@ -429,7 +495,7 @@ public class GatewayServer implements Runnable{
 		private ServerConnection connection;
 		private HttpExchange exchangeMsg;
 		
-		public SocketChannel gettcpSocket() {
+		public SocketChannel getTcpSocket() {
 			return tcpSocket;
 		}
 
@@ -464,14 +530,19 @@ public class GatewayServer implements Runnable{
 		
 		public void handleMessage(ByteBuffer buffer, ClientInfo clientInfo) {
 				
-				threadPool.execute(convertToRunnable(bufferToMap(buffer), clientInfo));
+				try {
+					threadPool.execute(convertToRunnable(bufferToMap(buffer), clientInfo));
+				} catch (JsonSyntaxException e) {
+					sendStringResponse(getJsonFormat("Error", "Bad JSON Format"), clientInfo);
+					System.err.println("bad json format");
+				}
 		}
 		
-		private HashMap<String, String> bufferToMap(ByteBuffer buffer) {
+		private HashMap<String, String> bufferToMap(ByteBuffer buffer) throws JsonSyntaxException{
 			json.clear();
 			reader = new JsonReader(new StringReader(bufferToString(buffer)));
 			reader.setLenient(true);
-			json = gson.fromJson(reader, HashMap.class);
+			json = gson.fromJson(reader, HashMap.class);	
 			return json;
 		}
 	}
@@ -482,10 +553,14 @@ public class GatewayServer implements Runnable{
 		return new Runnable() {
 			CommandKey commandKey = key;
 			Object data = param.get(DATA);
-			
 			@Override
 			public void run() {
-				cmdFactory.create(commandKey).run(data, clientInfo);
+				if (null != key) {
+					cmdFactory.create(commandKey).run(data, clientInfo);					
+				}else {
+					sendStringResponse(getJsonFormat("Error", "Wrong key used"), clientInfo);
+				}
+				
 			}
 		};
 	}
@@ -507,7 +582,7 @@ public class GatewayServer implements Runnable{
 		return ByteBuffer.wrap(string.getBytes(Charset.forName("UTF-8")));
 	}
 	
-	private void sendResponse(String response, ClientInfo clientInfo) {
+	private void sendStringResponse(String response, ClientInfo clientInfo) {
 		clientInfo.connection.sendResponse(stringToBuffer(response), clientInfo);		
 	}
 
@@ -521,10 +596,14 @@ public class GatewayServer implements Runnable{
 	}
 	
 	
-
+	private String getJsonFormat(String key, String value) {
+		HashMap<String, String> hashMap = new HashMap<String, String>();
+		hashMap.put(key, value);
+		return gson.toJson(hashMap, hashMap.getClass());
+	}
 
 	
-	private interface FactoryCommand {
+ 	private interface FactoryCommand {
 		public void run(Object data, ClientInfo clientInfo);
 	}
 	
@@ -533,14 +612,10 @@ public class GatewayServer implements Runnable{
 		@Override
 		public void run(Object data, ClientInfo clientInfo) {
 			System.out.println("inside CompanyRegister");
-			String response = "sucsses" + Math.random();
-			sendResponse(response, clientInfo);
+
+			sendStringResponse(getJsonFormat("Response", "Register Succsess on" + data), clientInfo);
 		}
 	}
 
-	@Override
-	public void run() {
-		// TODO Auto-generated method stub
-		
-	}
+
 }
