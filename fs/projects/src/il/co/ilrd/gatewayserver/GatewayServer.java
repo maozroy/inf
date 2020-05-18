@@ -2,7 +2,6 @@ package il.co.ilrd.gatewayserver;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -15,6 +14,9 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -27,8 +29,10 @@ import java.util.function.Function;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.JsonReader;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -44,12 +48,20 @@ public class GatewayServer implements Runnable{
 	private static final int BUFFER_SIZE = 32768;
 	private static final int MAXIMUM_THREADS = 20;
 	private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
-
+	private static final String DB_URL = "jdbc:mysql://127.0.0.1/";
+	private static final String DB_USER = "root";
+	private static final String DB_PASS = "MaozRoy1990";
+	private static final String SQL_COMMAND = "sqlCommand";
+	private static final String DB_NAME = "dbName";
+	public static final String RAW_DATA = "rawData";
+	
 
 	private ThreadPoolExecutor threadPool;
 	private CMDFactory<FactoryCommand, CommandKey, Object> cmdFactory;
 	private ConnectionsHandler connectionHandler;
 	private GatewayMessageHandler messageHandler;
+	
+	private HashMap<String, DatabaseManagement> dbMap = new HashMap<>();
 	
 	private GsonBuilder builder = new GsonBuilder();
 	private Gson gson = builder.create();
@@ -58,7 +70,8 @@ public class GatewayServer implements Runnable{
 	private boolean serverStarted = false;
 	
 	public GatewayServer(int numOfThreads) {
-		cmdFactory = new CMDFactory<>();
+		cmdFactory = CMDFactory.getFactory();
+
 		connectionHandler = new ConnectionsHandler();
 		messageHandler = new GatewayMessageHandler();
 		
@@ -70,10 +83,16 @@ public class GatewayServer implements Runnable{
 		
 		initFactory();
 	}
-	
+
 	private void initFactory() {
 		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new CompanyRegister();
 		cmdFactory.add(CommandKey.COMPANY_REGISTRATION, companyRegFunc);
+		Function<Object, FactoryCommand> ProductRegisterFunc = (Object a)-> new ProductRegister();
+		cmdFactory.add(CommandKey.PRODUCT_REGISTRATION, ProductRegisterFunc);
+		Function<Object, FactoryCommand> iotRegisterFunc = (Object a)-> new IOTReqister();
+		cmdFactory.add(CommandKey.IOT_USER_REGISTRATION, iotRegisterFunc);
+		Function<Object, FactoryCommand> iotUpdateFunc = (Object a)-> new IOTUpdate();
+		cmdFactory.add(CommandKey.IOT_UPDATE, iotUpdateFunc);
 	}
 	
 	public GatewayServer() {
@@ -525,36 +544,34 @@ public class GatewayServer implements Runnable{
 	}
 	
 	private class GatewayMessageHandler{
-		HashMap<String, String> json = new HashMap<>();
-		JsonReader reader;
+
 		
 		public void handleMessage(ByteBuffer buffer, ClientInfo clientInfo) {
-				
 				try {
-					threadPool.execute(convertToRunnable(bufferToMap(buffer), clientInfo));
+					threadPool.execute(convertToRunnable(bufferToJson(buffer), clientInfo));
 				} catch (JsonSyntaxException e) {
 					sendStringResponse(getJsonFormat("Error", "Bad JSON Format"), clientInfo);
 					System.err.println("bad json format");
 				}
 		}
 		
-		private HashMap<String, String> bufferToMap(ByteBuffer buffer) throws JsonSyntaxException{
-			json.clear();
-			reader = new JsonReader(new StringReader(bufferToString(buffer)));
-			reader.setLenient(true);
-			json = gson.fromJson(reader, HashMap.class);	
-			return json;
+		private JsonObject bufferToJson(ByteBuffer buffer) throws JsonSyntaxException{
+			JsonElement jelement = new JsonParser().parse(bufferToString(buffer));
+			JsonObject  jobject = jelement.getAsJsonObject();
+			return jobject;
 		}
 	}
 	
-	private Runnable convertToRunnable(HashMap<String, String> param, ClientInfo clientInfo) {
-		CommandKey key = getCommandKey(param.get(COMMAND_KEY));
-		
+	private Runnable convertToRunnable(JsonObject param, ClientInfo clientInfo) {
+		CommandKey key = getCommandKey(param.get(COMMAND_KEY).getAsString());
+		System.out.println("key: " + key);
 		return new Runnable() {
 			CommandKey commandKey = key;
 			Object data = param.get(DATA);
+
 			@Override
 			public void run() {
+				System.out.println("IN RUN: " + data);
 				if (null != key) {
 					cmdFactory.create(commandKey).run(data, clientInfo);					
 				}else {
@@ -612,10 +629,122 @@ public class GatewayServer implements Runnable{
 		@Override
 		public void run(Object data, ClientInfo clientInfo) {
 			System.out.println("inside CompanyRegister");
-
-			sendStringResponse(getJsonFormat("Response", "Register Succsess on" + data), clientInfo);
+				handleSqlCommand(SQL_COMMAND, data, clientInfo, "Registering Company sucsses");
 		}
 	}
+	
+	private class ProductRegister implements FactoryCommand {
 
+		@Override
+		public void run(Object data, ClientInfo clientInfo) {
+			System.out.println("inside ProductRegister");
+				handleSqlCommand(SQL_COMMAND, data, clientInfo, "Registering Product sucsses");
+		}
+	}
+	
+	private class IOTReqister implements FactoryCommand {
 
+		@Override
+		public void run(Object data, ClientInfo clientInfo) {
+			System.out.println("inside IOTReqister");
+				handleSqlCommand(SQL_COMMAND, data, clientInfo, "Registering IOT sucsses");
+		}
+	}
+	
+	private class IOTUpdate implements FactoryCommand {
+
+		@Override
+		public void run(Object data, ClientInfo clientInfo) {
+			System.out.println("inside IOTUpdate");
+			
+				handleSqlCommand(RAW_DATA, data, clientInfo, "IOT Update sucsses");
+		}
+	}
+	
+	private void handleSqlCommand(String jsonFieldName, Object data, ClientInfo clientInfo
+			,String responseMessage) {
+		try {
+			@SuppressWarnings("unchecked")
+			HashMap<String, String> json = gson.fromJson(data.toString(), HashMap.class);
+			DatabaseManagement db = getDatabase(json.get(DB_NAME));
+			
+			if (jsonFieldName == SQL_COMMAND) {
+				db.executeSqlCommand(json.get(jsonFieldName));				
+			}else {
+				db.createIOTEvent(json.get(jsonFieldName));
+			}
+			
+			sendStringResponse(getJsonFormat("Sucsses", responseMessage), clientInfo);
+
+		} catch (SQLException | ClassCastException e) {
+			sendStringResponse(getJsonFormat("Error",e.getMessage()), clientInfo);
+		}
+}
+
+	private DatabaseManagement getDatabase(String dbName) throws SQLException {
+		DatabaseManagement dbToReturn = dbMap.get(dbName);
+		if (null == dbToReturn) {
+			dbToReturn = new DatabaseManagement(DB_URL, DB_USER, DB_PASS, dbName);
+			dbMap.put(dbName, dbToReturn);
+		}
+		
+		return dbToReturn;
+	}
+
+	private class DatabaseManagement {
+		private final String databaseUrl;
+		private final String userName;
+		private final String password;
+		private static final String SSL_OFF = "?useSSL=false";
+		private static final String RAWDATA_DELIMETER = "\\|";
+		private static final String COMMAND_DELIMETER = ";";
+		private static final String RAWDATA_TABLE_NAME = " IOTEvent ";
+		
+		public DatabaseManagement(String url, String userName, String password, 
+													String databaseName) throws SQLException {
+			this.userName = userName;
+			this.password = password;	
+			this.databaseUrl = url + databaseName + SSL_OFF;
+			createDatabase(databaseName, url + SSL_OFF);
+		}
+				
+		public void createIOTEvent(String rawData) throws SQLException { 
+			String[] values = rawData.split(RAWDATA_DELIMETER);
+			String sqlCommand = "INSERT INTO " + RAWDATA_TABLE_NAME +" VALUES (";
+			int length = values.length;
+			for (int i = 0; i < length; ++i) {
+				if (i + 1 == length) {
+					sqlCommand +=  values[i] + ")"; 
+				} else {
+					sqlCommand +=  values[i] + ", "; 
+				}
+			}
+			System.out.println(sqlCommand);
+			executeSqlCommand(sqlCommand);
+		}
+		
+		private void createDatabase(String databaseName, String url) throws SQLException {
+			try(
+				java.sql.Connection conn = DriverManager.getConnection(url, userName, password);
+				Statement statement = conn.createStatement();
+			){
+				statement.execute(" CREATE DATABASE IF NOT EXISTS " + databaseName);
+			} 
+		}
+				
+		private void executeSqlCommand(String sqlCommands) throws SQLException {
+			try(
+					java.sql.Connection conn = DriverManager.getConnection(databaseUrl, userName, password);
+					Statement statement = conn.createStatement();
+			){
+				String[] sqlCommandsArr = sqlCommands.split(COMMAND_DELIMETER);
+				conn.setAutoCommit(false);	
+				for (String command : sqlCommandsArr) {
+					statement.addBatch(command.trim());			
+				}
+				statement.executeBatch();
+				conn.commit();
+			} 	
+		}
+	}
 }
