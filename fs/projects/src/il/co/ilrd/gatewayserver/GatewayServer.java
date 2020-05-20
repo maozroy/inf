@@ -3,6 +3,7 @@ package il.co.ilrd.gatewayserver;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -20,12 +21,12 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -41,6 +42,7 @@ import il.co.ilrd.http_message.HttpBuilder;
 import il.co.ilrd.http_message.HttpParser;
 import il.co.ilrd.http_message.HttpStatusCode;
 import il.co.ilrd.http_message.HttpVersion;
+import il.co.ilrd.jarloader.JarLoader;
 
 public class GatewayServer implements Runnable{
 	private static final String COMMAND_KEY = "CommandKey";
@@ -51,17 +53,15 @@ public class GatewayServer implements Runnable{
 	private static final String DB_URL = "jdbc:mysql://127.0.0.1/";
 	private static final String DB_USER = "root";
 	private static final String DB_PASS = "MaozRoy1990";
-	private static final String SQL_COMMAND = "sqlCommand";
 	private static final String DB_NAME = "dbName";
-	public static final String RAW_DATA = "rawData";
+	private static final String FACTORY_COMMAND_MODIFIER = "FactoryCommandModifier";
 	
-
 	private ThreadPoolExecutor threadPool;
-	private CMDFactory<FactoryCommand, CommandKey, Object> cmdFactory;
+	private CMDFactory<FactoryCommand, String, Object> cmdFactory;
 	private ConnectionsHandler connectionHandler;
 	private GatewayMessageHandler messageHandler;
 	
-	private HashMap<String, DatabaseManagement> dbMap = new HashMap<>();
+	private HashMap<String, DatabaseManagementInterface> dbMap = new HashMap<>();
 	
 	private GsonBuilder builder = new GsonBuilder();
 	private Gson gson = builder.create();
@@ -81,19 +81,31 @@ public class GatewayServer implements Runnable{
 					1, TimeUnit.SECONDS, 
 					new LinkedBlockingQueue<Runnable>());
 		
-		initFactory();
+		new FactoryCommandLoader().Loader();
 	}
 
-	private void initFactory() {
-		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new CompanyRegister();
-		cmdFactory.add(CommandKey.COMPANY_REGISTRATION, companyRegFunc);
-		Function<Object, FactoryCommand> ProductRegisterFunc = (Object a)-> new ProductRegister();
-		cmdFactory.add(CommandKey.PRODUCT_REGISTRATION, ProductRegisterFunc);
-		Function<Object, FactoryCommand> iotRegisterFunc = (Object a)-> new IOTReqister();
-		cmdFactory.add(CommandKey.IOT_USER_REGISTRATION, iotRegisterFunc);
-		Function<Object, FactoryCommand> iotUpdateFunc = (Object a)-> new IOTUpdate();
-		cmdFactory.add(CommandKey.IOT_UPDATE, iotUpdateFunc);
+	private class FactoryCommandLoader{
+		private void Loader() {
+			try {
+				List<Class<?>> classList = JarLoader.load(FACTORY_COMMAND_MODIFIER, "/home/student/jar/jar");
+				for (Class<?> class1 : classList) {
+					FactoryCommandModifier cmf = (FactoryCommandModifier) class1.getConstructor().newInstance();
+					cmf.addToFactory();
+				}
+			} catch (InstantiationException | 
+					SecurityException | 
+					ClassNotFoundException | 
+					IOException | 
+					IllegalAccessException | 
+					IllegalArgumentException | 
+					InvocationTargetException | 
+					NoSuchMethodException e ) {
+				System.err.println("error reading jar");
+				e.printStackTrace();
+			}
+		}		
 	}
+	
 	
 	public GatewayServer() {
 		this(DEFAULT_NUM_THREADS);
@@ -151,7 +163,7 @@ public class GatewayServer implements Runnable{
 	}
 	
 	public void setNumOfThreads(int numOfThread) {
-		System.out.println(threadPool.getCorePoolSize());
+		threadPool.setCorePoolSize(numOfThread);
 	}
 	
 	private void checkIfServerStarted() {
@@ -495,9 +507,7 @@ public class GatewayServer implements Runnable{
 			try {
 				tcpSocket.close();
 				
-			} catch (NullPointerException e) {
-				// TODO: handle exception
-			}
+			} catch (NullPointerException e) {}
 		}
 
 		@Override
@@ -563,23 +573,38 @@ public class GatewayServer implements Runnable{
 	}
 	
 	private Runnable convertToRunnable(JsonObject param, ClientInfo clientInfo) {
-		CommandKey key = getCommandKey(param.get(COMMAND_KEY).getAsString());
-		System.out.println("key: " + key);
+		String key = param.get(COMMAND_KEY).getAsString();
+		Object data = param.get(DATA);
+		
 		return new Runnable() {
-			CommandKey commandKey = key;
-			Object data = param.get(DATA);
-
 			@Override
 			public void run() {
-				System.out.println("IN RUN: " + data);
-				if (null != key) {
-					cmdFactory.create(commandKey).run(data, clientInfo);					
-				}else {
-					sendStringResponse(getJsonFormat("Error", "Wrong key used"), clientInfo);
+					if (null != key) {
+						String response = null;
+						try {
+							@SuppressWarnings("unchecked")
+							HashMap<String, String> json = gson.fromJson(data.toString(), HashMap.class);
+							if (cmdFactory.map.containsKey(key)) {
+									response = cmdFactory.create(key).run(data, getDatabase(json.get(DB_NAME)));
+									sendResponseFromTask(response, clientInfo);
+							}else {
+								sendStringResponse(getJsonFormat("Error", "Wrong " + COMMAND_KEY + " used"), clientInfo);								
+							}
+						} catch (SQLException e) {
+							sendStringResponse(getJsonFormat("Error", e.getMessage()), clientInfo);								
+						}															
+					}else {
+						sendStringResponse(getJsonFormat("Error", "Wrong key used"), clientInfo);
+					}
+			}
+
+			private void sendResponseFromTask(String response, ClientInfo clientInfo) {
+				if (null != response) {
+					sendStringResponse(response, clientInfo);
 				}
-				
 			}
 		};
+		
 	}
 	
 	private String bufferToString(ByteBuffer buffer) {
@@ -601,17 +626,7 @@ public class GatewayServer implements Runnable{
 	
 	private void sendStringResponse(String response, ClientInfo clientInfo) {
 		clientInfo.connection.sendResponse(stringToBuffer(response), clientInfo);		
-	}
-
-	private CommandKey getCommandKey(String key) {
-		for (CommandKey iterable_element : CommandKey.values()) {
-			if (iterable_element.name().equals(key)) {
-				return iterable_element;
-			}
-		}
-		return null;
-	}
-	
+	}	
 	
 	private String getJsonFormat(String key, String value) {
 		HashMap<String, String> hashMap = new HashMap<String, String>();
@@ -619,70 +634,8 @@ public class GatewayServer implements Runnable{
 		return gson.toJson(hashMap, hashMap.getClass());
 	}
 
-	
- 	private interface FactoryCommand {
-		public void run(Object data, ClientInfo clientInfo);
-	}
-	
-	private class CompanyRegister implements FactoryCommand {
-
-		@Override
-		public void run(Object data, ClientInfo clientInfo) {
-			System.out.println("inside CompanyRegister");
-				handleSqlCommand(SQL_COMMAND, data, clientInfo, "Registering Company sucsses");
-		}
-	}
-	
-	private class ProductRegister implements FactoryCommand {
-
-		@Override
-		public void run(Object data, ClientInfo clientInfo) {
-			System.out.println("inside ProductRegister");
-				handleSqlCommand(SQL_COMMAND, data, clientInfo, "Registering Product sucsses");
-		}
-	}
-	
-	private class IOTReqister implements FactoryCommand {
-
-		@Override
-		public void run(Object data, ClientInfo clientInfo) {
-			System.out.println("inside IOTReqister");
-				handleSqlCommand(SQL_COMMAND, data, clientInfo, "Registering IOT sucsses");
-		}
-	}
-	
-	private class IOTUpdate implements FactoryCommand {
-
-		@Override
-		public void run(Object data, ClientInfo clientInfo) {
-			System.out.println("inside IOTUpdate");
-			
-				handleSqlCommand(RAW_DATA, data, clientInfo, "IOT Update sucsses");
-		}
-	}
-	
-	private void handleSqlCommand(String jsonFieldName, Object data, ClientInfo clientInfo
-			,String responseMessage) {
-		try {
-			@SuppressWarnings("unchecked")
-			HashMap<String, String> json = gson.fromJson(data.toString(), HashMap.class);
-			DatabaseManagement db = getDatabase(json.get(DB_NAME));
-			
-			if (jsonFieldName == SQL_COMMAND) {
-				db.executeSqlCommand(json.get(jsonFieldName));				
-			}else {
-				db.createIOTEvent(json.get(jsonFieldName));
-			}
-			
-			sendStringResponse(getJsonFormat("Sucsses", responseMessage), clientInfo);
-
-		} catch (SQLException | ClassCastException e) {
-			sendStringResponse(getJsonFormat("Error",e.getMessage()), clientInfo);
-		}
-}
-
-	private DatabaseManagement getDatabase(String dbName) throws SQLException {
-		DatabaseManagement dbToReturn = dbMap.get(dbName);
+	private DatabaseManagementInterface getDatabase(String dbName) throws SQLException {
+		DatabaseManagementInterface dbToReturn = dbMap.get(dbName);
 		if (null == dbToReturn) {
 			dbToReturn = new DatabaseManagement(DB_URL, DB_USER, DB_PASS, dbName);
 			dbMap.put(dbName, dbToReturn);
@@ -691,7 +644,7 @@ public class GatewayServer implements Runnable{
 		return dbToReturn;
 	}
 
-	private class DatabaseManagement {
+	private class DatabaseManagement implements DatabaseManagementInterface{
 		private final String databaseUrl;
 		private final String userName;
 		private final String password;
@@ -707,7 +660,8 @@ public class GatewayServer implements Runnable{
 			this.databaseUrl = url + databaseName + SSL_OFF;
 			createDatabase(databaseName, url + SSL_OFF);
 		}
-				
+		
+		@Override
 		public void createIOTEvent(String rawData) throws SQLException { 
 			String[] values = rawData.split(RAWDATA_DELIMETER);
 			String sqlCommand = "INSERT INTO " + RAWDATA_TABLE_NAME +" VALUES (";
@@ -719,7 +673,6 @@ public class GatewayServer implements Runnable{
 					sqlCommand +=  values[i] + ", "; 
 				}
 			}
-			System.out.println(sqlCommand);
 			executeSqlCommand(sqlCommand);
 		}
 		
@@ -745,6 +698,17 @@ public class GatewayServer implements Runnable{
 				statement.executeBatch();
 				conn.commit();
 			} 	
+		}
+
+		@Override
+		public void createTable(String sqlCommand) throws SQLException {
+			executeSqlCommand(sqlCommand);
+			
+		}
+
+		@Override
+		public void createRow(String sqlCommand) throws SQLException {
+			executeSqlCommand(sqlCommand);
 		}
 	}
 }
