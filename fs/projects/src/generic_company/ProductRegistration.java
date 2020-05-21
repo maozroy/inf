@@ -1,4 +1,4 @@
-package jar.generic_company;
+package generic_company;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -11,8 +11,7 @@ import il.co.ilrd.gatewayserver.CMDFactory;
 import il.co.ilrd.gatewayserver.DatabaseManagementInterface;
 import il.co.ilrd.gatewayserver.FactoryCommand;
 
-
-public class CompanyRegisteration implements il.co.ilrd.gatewayserver.FactoryCommandModifier {
+public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryCommandModifier {
 	private static final String SQL_COMMAND = "sqlCommand";
 	private static final String DB_NAME = "dbName";
 
@@ -23,11 +22,11 @@ public class CompanyRegisteration implements il.co.ilrd.gatewayserver.FactoryCom
 	@Override
 	public void addToFactory() {
 		CMDFactory<FactoryCommand, String, Object> cmdFactory = CMDFactory.getFactory();
-		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new CompanyRegisterationTask();
-		cmdFactory.add("COMPANY_REGISTRATION", companyRegFunc);
+		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new ProductRegistrationTask();
+		cmdFactory.add("PRODUCT_REGISTRATION", companyRegFunc);
 	}
 	
-	private class CompanyRegisterationTask implements FactoryCommand{
+	private class ProductRegistrationTask implements FactoryCommand{
 
 		@Override
 		public String run(Object data, DatabaseManagementInterface databaseManagement) {
@@ -41,7 +40,7 @@ public class CompanyRegisteration implements il.co.ilrd.gatewayserver.FactoryCom
 				return getJsonFormat("error", "Wrong fields used");
 			}
 
-			return getJsonFormat("Succsess", json.get(DB_NAME) + " Company Registered");
+			return getJsonFormat("Succsess", json.get(DB_NAME) + " Product Registered");
 		}
 		
 		private String getJsonFormat(String key, String value) {
@@ -49,6 +48,5 @@ public class CompanyRegisteration implements il.co.ilrd.gatewayserver.FactoryCom
 			hashMap.put(key, value);
 			return gson.toJson(hashMap, hashMap.getClass());
 		}
-		
 	}
 }

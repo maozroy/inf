@@ -1,5 +1,10 @@
 package il.co.ilrd.gatewayserver;
 
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
@@ -15,6 +20,13 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
+import java.nio.file.ClosedWatchServiceException;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -27,6 +39,8 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.zip.ZipException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -38,11 +52,14 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import il.co.ilrd.filedatabase.FileBackup;
 import il.co.ilrd.http_message.HttpBuilder;
 import il.co.ilrd.http_message.HttpParser;
 import il.co.ilrd.http_message.HttpStatusCode;
 import il.co.ilrd.http_message.HttpVersion;
 import il.co.ilrd.jarloader.JarLoader;
+import il.co.ilrd.observer.Callback;
+import il.co.ilrd.observer.Dispatcher;
 
 public class GatewayServer implements Runnable{
 	private static final String COMMAND_KEY = "CommandKey";
@@ -54,8 +71,10 @@ public class GatewayServer implements Runnable{
 	private static final String DB_USER = "root";
 	private static final String DB_PASS = "MaozRoy1990";
 	private static final String DB_NAME = "dbName";
+	private static final String DIR_PATH = "/home/student/jar/";
 	private static final String FACTORY_COMMAND_MODIFIER = "FactoryCommandModifier";
-	
+	private JarMonitor jarMonitor;
+	private FactoryCommandLoader loader;
 	private ThreadPoolExecutor threadPool;
 	private CMDFactory<FactoryCommand, String, Object> cmdFactory;
 	private ConnectionsHandler connectionHandler;
@@ -69,7 +88,7 @@ public class GatewayServer implements Runnable{
 	private boolean serverStopped = false;
 	private boolean serverStarted = false;
 	
-	public GatewayServer(int numOfThreads) {
+	public GatewayServer(int numOfThreads) throws IOException {
 		cmdFactory = CMDFactory.getFactory();
 
 		connectionHandler = new ConnectionsHandler();
@@ -80,34 +99,15 @@ public class GatewayServer implements Runnable{
 					MAXIMUM_THREADS, 
 					1, TimeUnit.SECONDS, 
 					new LinkedBlockingQueue<Runnable>());
-		
-		new FactoryCommandLoader().Loader();
+		jarMonitor = new JarMonitor(DIR_PATH);
+		loader = new FactoryCommandLoader();
+		//new FactoryCommandLoader().Loader();
 	}
 
-	private class FactoryCommandLoader{
-		private void Loader() {
-			try {
-				List<Class<?>> classList = JarLoader.load(FACTORY_COMMAND_MODIFIER, "/home/student/jar/jar");
-				for (Class<?> class1 : classList) {
-					FactoryCommandModifier cmf = (FactoryCommandModifier) class1.getConstructor().newInstance();
-					cmf.addToFactory();
-				}
-			} catch (InstantiationException | 
-					SecurityException | 
-					ClassNotFoundException | 
-					IOException | 
-					IllegalAccessException | 
-					IllegalArgumentException | 
-					InvocationTargetException | 
-					NoSuchMethodException e ) {
-				System.err.println("error reading jar");
-				e.printStackTrace();
-			}
-		}		
-	}
+
 	
 	
-	public GatewayServer() {
+	public GatewayServer() throws IOException {
 		this(DEFAULT_NUM_THREADS);
 	}
 	
@@ -133,6 +133,7 @@ public class GatewayServer implements Runnable{
 	
 	public void start() {
 		checkIfServerStarted();
+		new Thread(jarMonitor).run();
 		serverStarted = true;
 		try {
 			connectionHandler.startConnections();
@@ -245,7 +246,118 @@ public class GatewayServer implements Runnable{
 			}
 			selector.close();
 		}
-	}	
+	}
+	
+	public class JarMonitor implements DirMonitor, Runnable {
+		private Dispatcher<String> dispatcher = new Dispatcher<>();
+		private WatchService watcher = FileSystems.getDefault().newWatchService();
+		
+		public JarMonitor(String dirPath) throws IOException {
+			initWatchService(dirPath);
+		}
+		
+		@Override
+		public void stopUpdate() throws IOException {
+			dispatcher.stopUpdate();
+			watcher.close();
+		}
+
+		@Override
+		public void register(Callback<String> callback) {
+			dispatcher.register(callback);
+			System.out.println("Register");
+		}
+
+		@Override
+		public void unregister(Callback<String> callback) {
+			dispatcher.unregister(callback);
+		}
+		
+		private void update(String path) {
+			dispatcher.updateAll(path);
+		}
+		
+		private void initWatchService(String filePath) throws IOException {
+			Path dir = FileSystems.getDefault().getPath(filePath);	
+			watcher = FileSystems.getDefault().newWatchService();
+	        dir.register(watcher, ENTRY_CREATE, ENTRY_MODIFY);
+	    
+	        System.out.println("file to watch: " + dir);
+		}
+		
+		@Override
+		public void run() {
+			System.out.println("STARTING RUN");
+			Path path;
+			WatchKey key;
+	        while (!serverStopped) {
+			    try {
+					key = watcher.take();
+				    if (null != key) {
+				    	 for (WatchEvent<?> event : key.pollEvents()) {
+				    		 path = (Path)event.context();
+				    		if (path.getFileName().toString().endsWith(".jar")) {
+				    			path = (Path) key.watchable();
+				    			update(path.resolve((Path) event.context()).toString());
+				    			System.out.println("FOCC");
+							}
+				    	 }
+						 key.reset();
+					}
+				}catch (InterruptedException e ) {
+					e.printStackTrace();
+				}catch (ClosedWatchServiceException e) {
+					//this exception caught to interrupt the blocking watcher.take() in case of closing.
+				}
+			}
+	    }
+	}
+	
+	private class FactoryCommandLoader{
+		
+		private Consumer<String> updateCallback = new Consumer<String>() {
+
+			@Override
+			public void accept(String string) {
+				System.out.println("OVED");
+				loader(string);
+			}
+		};
+		private Consumer<String> stopUpdateCallback = new Consumer<String>() {
+
+			@Override
+			public void accept(String arg0) {
+				System.out.println("???");
+			}
+		};
+		private Callback<String> callback = new Callback<String>(updateCallback, stopUpdateCallback);
+		
+		public FactoryCommandLoader() {
+			
+			jarMonitor.register(callback);
+		}
+		private void loader(String string) {
+			try {
+				List<Class<?>> classList = JarLoader.load(FACTORY_COMMAND_MODIFIER, string);
+				for (Class<?> class1 : classList) {
+					FactoryCommandModifier cmf = (FactoryCommandModifier) class1.getConstructor().newInstance();
+					cmf.addToFactory();
+				}
+			} catch (InstantiationException | 
+					SecurityException | 
+					ClassNotFoundException | 
+					IOException | 
+					IllegalAccessException | 
+					IllegalArgumentException | 
+					InvocationTargetException |
+					NoClassDefFoundError |
+					NoSuchMethodException e ) {
+				System.err.println("error reading jar");
+				e.printStackTrace();
+				
+			}
+		}		
+	}
 	
 	private interface ServerConnection {
 		public void initServerConnection(HashMap<Channel, ServerConnection> channelmap, Selector selector) throws IOException;

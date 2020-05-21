@@ -1,9 +1,10 @@
 package il.co.ilrd.gatewayserver;
 
+import java.io.IOException;
 
 public class RunGateway {
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException, IOException {
 		GatewayServer server = new GatewayServer(5);
 		server.addTcpServer(ServerPort.TCP_SERVER_PORT);
 		server.addHighHttpServer(ServerPort.HTTP_SERVER_PORT);

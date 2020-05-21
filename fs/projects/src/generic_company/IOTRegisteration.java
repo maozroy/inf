@@ -1,4 +1,4 @@
-package jar.generic_company;
+package generic_company;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -10,8 +10,9 @@ import com.google.gson.GsonBuilder;
 import il.co.ilrd.gatewayserver.CMDFactory;
 import il.co.ilrd.gatewayserver.DatabaseManagementInterface;
 import il.co.ilrd.gatewayserver.FactoryCommand;
+import il.co.ilrd.gatewayserver.FactoryCommandModifier;
 
-public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryCommandModifier {
+public class IOTRegisteration implements FactoryCommandModifier{
 	private static final String SQL_COMMAND = "sqlCommand";
 	private static final String DB_NAME = "dbName";
 
@@ -22,11 +23,11 @@ public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryComm
 	@Override
 	public void addToFactory() {
 		CMDFactory<FactoryCommand, String, Object> cmdFactory = CMDFactory.getFactory();
-		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new ProductRegistrationTask();
-		cmdFactory.add("PRODUCT_REGISTRATION", companyRegFunc);
+		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new IOTRegisterationTask();
+		cmdFactory.add("IOT_USER_REGISTRATION", companyRegFunc);
 	}
 	
-	private class ProductRegistrationTask implements FactoryCommand{
+	private class IOTRegisterationTask implements FactoryCommand{
 
 		@Override
 		public String run(Object data, DatabaseManagementInterface databaseManagement) {
@@ -40,7 +41,7 @@ public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryComm
 				return getJsonFormat("error", "Wrong fields used");
 			}
 
-			return getJsonFormat("Succsess", json.get(DB_NAME) + " Product Registered");
+			return getJsonFormat("Succsess", json.get(DB_NAME) + "IOT Registered");
 		}
 		
 		private String getJsonFormat(String key, String value) {
@@ -48,5 +49,6 @@ public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryComm
 			hashMap.put(key, value);
 			return gson.toJson(hashMap, hashMap.getClass());
 		}
+		
 	}
 }

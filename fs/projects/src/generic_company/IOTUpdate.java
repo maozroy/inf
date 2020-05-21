@@ -1,4 +1,4 @@
-package jar.generic_company;
+package generic_company;
 
 import java.sql.SQLException;
 import java.util.HashMap;
