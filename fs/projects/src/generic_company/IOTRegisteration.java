@@ -15,6 +15,8 @@ import il.co.ilrd.gatewayserver.FactoryCommandModifier;
 public class IOTRegisteration implements FactoryCommandModifier{
 	private static final String SQL_COMMAND = "sqlCommand";
 	private static final String DB_NAME = "dbName";
+	private final String commandName = "IOT_USER_REGISTRATION";
+	private final int version = 1;
 
 
 	private GsonBuilder builder = new GsonBuilder();
@@ -24,7 +26,7 @@ public class IOTRegisteration implements FactoryCommandModifier{
 	public void addToFactory() {
 		CMDFactory<FactoryCommand, String, Object> cmdFactory = CMDFactory.getFactory();
 		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new IOTRegisterationTask();
-		cmdFactory.add("IOT_USER_REGISTRATION", companyRegFunc);
+		cmdFactory.add(commandName, companyRegFunc);
 	}
 	
 	private class IOTRegisterationTask implements FactoryCommand{
@@ -51,4 +53,14 @@ public class IOTRegisteration implements FactoryCommandModifier{
 		}
 		
 	}
+	@Override
+	public int getVersion() {
+		return version;
+	}
+
+	@Override
+	public String getCommand() {
+		return commandName;
+	}
+
 }

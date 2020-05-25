@@ -14,6 +14,9 @@ import il.co.ilrd.gatewayserver.FactoryCommand;
 public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryCommandModifier {
 	private static final String SQL_COMMAND = "sqlCommand";
 	private static final String DB_NAME = "dbName";
+	private final String commandName = "PRODUCT_REGISTRATION";
+	private final int version = 1;
+
 
 
 	private GsonBuilder builder = new GsonBuilder();
@@ -23,7 +26,7 @@ public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryComm
 	public void addToFactory() {
 		CMDFactory<FactoryCommand, String, Object> cmdFactory = CMDFactory.getFactory();
 		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new ProductRegistrationTask();
-		cmdFactory.add("PRODUCT_REGISTRATION", companyRegFunc);
+		cmdFactory.add(commandName, companyRegFunc);
 	}
 	
 	private class ProductRegistrationTask implements FactoryCommand{
@@ -48,5 +51,15 @@ public class ProductRegistration implements il.co.ilrd.gatewayserver.FactoryComm
 			hashMap.put(key, value);
 			return gson.toJson(hashMap, hashMap.getClass());
 		}
+	}
+	
+	@Override
+	public int getVersion() {
+		return version;
+	}
+
+	@Override
+	public String getCommand() {
+		return commandName;
 	}
 }

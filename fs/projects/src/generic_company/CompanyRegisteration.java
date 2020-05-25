@@ -15,16 +15,17 @@ import il.co.ilrd.gatewayserver.FactoryCommand;
 public class CompanyRegisteration implements il.co.ilrd.gatewayserver.FactoryCommandModifier {
 	private static final String SQL_COMMAND = "sqlCommand";
 	private static final String DB_NAME = "dbName";
-
+	private final String commandName = "COMPANY_REGISTRATION";
+	private final int version = 2;
 
 	private GsonBuilder builder = new GsonBuilder();
 	private Gson gson = builder.create();
-
+///
 	@Override
 	public void addToFactory() {
 		CMDFactory<FactoryCommand, String, Object> cmdFactory = CMDFactory.getFactory();
 		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new CompanyRegisterationTask();
-		cmdFactory.add("COMPANY_REGISTRATION", companyRegFunc);
+		cmdFactory.add(commandName, companyRegFunc);
 	}
 	
 	private class CompanyRegisterationTask implements FactoryCommand{
@@ -50,5 +51,15 @@ public class CompanyRegisteration implements il.co.ilrd.gatewayserver.FactoryCom
 			return gson.toJson(hashMap, hashMap.getClass());
 		}
 		
+	}
+	
+	@Override
+	public int getVersion() {
+		return version;
+	}
+
+	@Override
+	public String getCommand() {
+		return commandName;
 	}
 }

@@ -15,6 +15,9 @@ import il.co.ilrd.gatewayserver.FactoryCommandModifier;
 public class IOTUpdate implements FactoryCommandModifier {
 	private static final String RAW_DATA = "rawData";
 	private static final String DB_NAME = "dbName";
+	private final String commandName = "IOT_UPDATE";
+	private final int version = 1;
+
 
 
 	private GsonBuilder builder = new GsonBuilder();
@@ -24,7 +27,7 @@ public class IOTUpdate implements FactoryCommandModifier {
 	public void addToFactory() {
 		CMDFactory<FactoryCommand, String, Object> cmdFactory = CMDFactory.getFactory();
 		Function<Object, FactoryCommand> companyRegFunc = (Object a)-> new IOTUpdateTask();
-		cmdFactory.add("IOT_UPDATE", companyRegFunc);
+		cmdFactory.add(commandName, companyRegFunc);
 	}
 	
 	private class IOTUpdateTask implements FactoryCommand{
@@ -49,6 +52,15 @@ public class IOTUpdate implements FactoryCommandModifier {
 			hashMap.put(key, value);
 			return gson.toJson(hashMap, hashMap.getClass());
 		}
-		
+	}
+	
+	@Override
+	public int getVersion() {
+		return version;
+	}
+
+	@Override
+	public String getCommand() {
+		return commandName;
 	}
 }
