@@ -16,7 +16,7 @@ public class RunGateway {
 //		server.setNumOfThreads(2);
 //		server.setNumOfThreads(0);
 		System.out.println("stopped");
-		server.stop();
+	//	server.stop();
 //		System.err.println("ERR");
 	}
 

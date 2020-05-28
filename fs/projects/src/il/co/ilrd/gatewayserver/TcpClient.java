@@ -30,7 +30,7 @@ public class TcpClient {
 
 		
 		HashMap<String, String> message = new HashMap<>();
-		message.put("Commandkey", "COMPANY_REGISTRATION");
+		message.put("CommandKey", "COMPANY_REGISTRATION");
 		message.put("Data", "dayumn");
 
 		
@@ -53,61 +53,5 @@ public class TcpClient {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}  
-		
-		
-//		try {
-//			SocketChannel clientSocket = SocketChannel.open(new InetSocketAddress(ServerPort.TCP_SERVER_PORT.getPort()));
-//
-//			buffer.clear();
-//			buffer.put(toSend.getBytes());
-//			buffer.flip();
-//			clientSocket.write(buffer);
-//		} catch (IOException e1) {
-//			e1.printStackTrace();
-//		}		
-		
-//		String hostName = InetAddress.getLocalHost().getHostName();
-//		int portNumber = ServerPort.TCP_SERVER_PORT.getPort();
-//		ByteBuffer buffer = ByteBuffer.allocate(4096);
-//		SocketChannel clientSocket = null;
-//
-//		ServerMessage receivedMssage = null;
-//		byte[] messageArray =  toSend.getBytes();
-//		
-//		try {
-//			clientSocket = SocketChannel.open(new InetSocketAddress(hostName, portNumber));
-//		} catch (IOException e1) {
-//			e1.printStackTrace();
-//		}
-//		// send register message
-////		messageArray =  ConversionUtils.toByteArray(HTTPMsg);
-//		buffer.clear();
-//		buffer.put(messageArray);
-//		buffer.flip();
-//		clientSocket.write(buffer);
-//		
-		
-		
-//		try(Socket socket = new Socket(InetAddress.getLocalHost(), ServerPort.TCP_SERVER_PORT.getPort());
-//			PrintWriter output = new PrintWriter(socket.getOutputStream());
-//			BufferedReader input = new BufferedReader(
-//									new InputStreamReader(
-//									socket.getInputStream()))
-//			){		
-//			for (int i = 0 ; i < 5 ;i++) {
-//				buffer.clear();
-//				buffer.put(messageArray);
-//				buffer.flip();
-//				clientSocket.write(buffer);
-//				output.write(toSend);
-//				output.flush();
-//				System.out.println("server sends: " + input.readLine());
-//			}
-//		socket.close();	
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} 
-		
 	}
 }
