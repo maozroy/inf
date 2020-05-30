@@ -10,14 +10,15 @@ public class HeartrateSensor implements Runnable {
 			try {
 				Thread.sleep(1000);
 				msgCounter++;
+				if (msgCounter%5 == 0) {
+					HeartMonitorIOT.map.put("ERROR " + msgCounter, "heart rate is 100");
+				}
 				HeartMonitorIOT.map.put("UPDATE " + msgCounter, "heart rate is 100");
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
-		}
-		// TODO Auto-generated method stub
-		
+		}		
 	}
 }

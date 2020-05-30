@@ -1,13 +1,12 @@
-package il.co.ilrd.raspi_clients.heart.monitor.tcp;
+package il.co.ilrd.raspi_clients.fridge.http;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SocketChannel;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 
-
-public class HeartMonitorIOT  {
+public class FridgeIOT {
 	protected static final String DB_NAME = "tadiran";
 	protected static final String DB_NAME_FIELD = "dbName";
 	protected static final String KEY_COMMAND_FIELD = "CommandKey";
@@ -20,12 +19,12 @@ public class HeartMonitorIOT  {
 	
 	protected static final int serialNumber = 0;
 	protected static final String IP = "127.0.0.1";
-	protected static final int PORT = 50000;
+	protected static final int PORT = 8080;
 	protected static final int BUFFER_SIZE = 4096;
-	protected static SocketChannel clientSocket = null;
+	protected static Socket socket;
 	private static RecieveMessage recieveMsesage = new RecieveMessage();
 	private static SendMessage sendMsesage = new SendMessage();
-	private static HeartrateSensor heartrateSensor = new HeartrateSensor();
+	private static DoorSensor doorSensor = new DoorSensor();
 	protected static ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
 
 	public static boolean isRunning = true;
@@ -33,7 +32,7 @@ public class HeartMonitorIOT  {
 	public static void main(String[] args) {
 		threads.add(new Thread(recieveMsesage));
 		threads.add(new Thread(sendMsesage));
-		threads.add(new Thread(heartrateSensor));
+		threads.add(new Thread(doorSensor));
 		try {
 			initConnection();
 		} catch (IOException e) {
@@ -41,16 +40,14 @@ public class HeartMonitorIOT  {
 			e.printStackTrace();
 			return;
 		}
-		
 	}
 
 	private static void initConnection() throws IOException {
-		clientSocket = SocketChannel.open(new InetSocketAddress(IP, PORT));	
+		socket = new Socket(InetAddress.getByName(IP), PORT);
 		for (Thread thread : threads) {
 			thread.start();
 		}
-		System.out.println("Connecting heartMonitor to " + IP + " in port " + PORT);
-		
+		System.out.println("Connecting fridgeIOT to " + IP + " in port " + PORT);
 	}
 
 	public static void close() {

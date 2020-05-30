@@ -1,6 +1,7 @@
-package il.co.ilrd.raspi_clients.heart.monitor.tcp;
+package il.co.ilrd.raspi_clients.fridge.http;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -10,6 +11,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 
+import il.co.ilrd.http_message.HttpParser;
 
 
 public class RecieveMessage implements Runnable {
@@ -20,21 +22,23 @@ public class RecieveMessage implements Runnable {
 	
 	@Override
 	public void run() {
-		ByteBuffer buffer = ByteBuffer.allocate(HeartMonitorIOT.BUFFER_SIZE);
 
-		while(HeartMonitorIOT.isRunning) {
-			try {
-				buffer.clear();
-				if (HeartMonitorIOT.clientSocket.read(buffer) != -1) {
-					buffer.flip();
-					String responseKey = getGey(buffer);
-					if (responseKey != null) {
-						HeartMonitorIOT.map.remove(responseKey);						
-					}
+		while(FridgeIOT.isRunning) {
+			byte[] byteArr = new byte[FridgeIOT.BUFFER_SIZE];
+			try (
+					InputStream inputStream = FridgeIOT.socket.getInputStream();
+				){
+				inputStream.read(byteArr);
+				String responseMessage = new String(byteArr);
+				System.out.println("RESPONSE: " + responseMessage);
+				HttpParser httpPareser = new HttpParser(responseMessage);
+				String key = getGey(ByteBuffer.wrap(httpPareser.getBody().getBody().getBytes()));
+				if (key != null) {
+					FridgeIOT.map.remove(key);
 				}
 			} catch (IOException e1) {
 				System.err.println("Connection Closed!");
-				HeartMonitorIOT.close();
+				FridgeIOT.close();
 			}
 		}
 	}
