@@ -5,7 +5,7 @@ import java.io.IOException;
 public class RunGateway {
 
 	public static void main(String[] args) throws InterruptedException, IOException {
-		GatewayServer server = new GatewayServer(5, "/home/student/jar/new");
+		GatewayServer server = new GatewayServer(5, "/home/maoz/selfjar");
 		server.addTcpServer(ServerPort.TCP_SERVER_PORT);
 		server.addHighHttpServer(ServerPort.HTTP_SERVER_PORT);
 //	//	server.addLowHttpServer(ServerPort.UDP_SERVER_PORT);

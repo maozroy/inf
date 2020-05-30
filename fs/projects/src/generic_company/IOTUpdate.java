@@ -37,14 +37,18 @@ public class IOTUpdate implements FactoryCommandModifier {
 			@SuppressWarnings("unchecked")
 			HashMap<String, String> json = gson.fromJson(data.toString(), HashMap.class);
 			try {
-				databaseManagement.createRow(json.get(RAW_DATA));
+				String rawData = json.get(RAW_DATA);
+				String[] splittedData = rawData.split("\\|");
+				System.out.println(splittedData[1]);
+				databaseManagement.createIOTEvent(json.get(RAW_DATA));
+				System.out.println("INSIDE TASK: " + json.get(RAW_DATA));
+				return getJsonFormat("Succsess", splittedData[1]);
 			} catch (SQLException e) {
 				return getJsonFormat("error", e.getMessage());
 			} catch (NullPointerException e) {
 				return getJsonFormat("error", "Wrong fields used");
 			}
-
-			return getJsonFormat("Succsess", json.get(DB_NAME) + " IOT update");
+			
 		}
 		
 		private String getJsonFormat(String key, String value) {

@@ -6,6 +6,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
@@ -45,6 +46,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -65,7 +67,7 @@ public class GatewayServer implements Runnable{
 	private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
 	private static final String DB_URL = "jdbc:mysql://127.0.0.1/";
 	private static final String DB_USER = "root";
-	private static final String DB_PASS = "MaozRoy1990";
+	private static final String DB_PASS = "root";
 	private static final String DB_NAME = "dbName";
 	private final String dirPath;
 	private static final String FACTORY_COMMAND_MODIFIER = "FactoryCommandModifier";
@@ -80,6 +82,7 @@ public class GatewayServer implements Runnable{
 	
 	private GsonBuilder builder = new GsonBuilder();
 	private Gson gson = builder.create();
+	
 	
 	private boolean serverStopped = false;
 	private boolean serverStarted = false;
@@ -297,7 +300,6 @@ public class GatewayServer implements Runnable{
 				    		if (path.getFileName().toString().endsWith(".jar")) {
 				    			path = (Path) key.watchable();
 				    			update(path.resolve((Path) event.context()).toString());
-				    			System.out.println("FOCC");
 							}
 				    	 }
 						 key.reset();
@@ -681,38 +683,39 @@ public class GatewayServer implements Runnable{
 	}
 	
 	private class GatewayMessageHandler{
-
+		HashMap<String, String> json = new HashMap<>();
+		JsonReader reader;
 		
 		public void handleMessage(ByteBuffer buffer, ClientInfo clientInfo) {
 				try {
 					threadPool.execute(convertToRunnable(bufferToJson(buffer), clientInfo));
 				} catch (JsonSyntaxException e) {
+					e.printStackTrace();
 					sendStringResponse(getJsonFormat("Error", "Bad JSON Format"), clientInfo);
 					System.err.println("bad json format");
 				}
 		}
 		
 		private JsonObject bufferToJson(ByteBuffer buffer) throws JsonSyntaxException{
-			JsonElement jelement = new JsonParser().parse(bufferToString(buffer));
-			JsonObject  jobject = jelement.getAsJsonObject();
-			return jobject;
+			reader = new JsonReader(new StringReader(bufferToString(buffer)));
+			reader.setLenient(true);
+			JsonObject j = gson.fromJson(reader, JsonObject.class);
+			return j;
 		}
 	}
 	
 	private Runnable convertToRunnable(JsonObject param, ClientInfo clientInfo) {
 		String key = param.get(COMMAND_KEY).getAsString();
-		Object data = param.get(DATA);
-		
+
+		JsonObject innerMessage = gson.fromJson(param.get(DATA), JsonObject.class);
 		return new Runnable() {
 			@Override
 			public void run() {
 					if (null != key) {
 						String response = null;
 						try {
-							@SuppressWarnings("unchecked")
-							HashMap<String, String> json = gson.fromJson(data.toString(), HashMap.class);
 							if (cmdFactory.map.containsKey(key)) {
-									response = cmdFactory.create(key).run(data, getDatabase(json.get(DB_NAME)));
+									response = cmdFactory.create(key).run(innerMessage, getDatabase(innerMessage.get(DB_NAME).getAsString()));
 									sendResponseFromTask(response, clientInfo);
 							}else {
 								sendStringResponse(getJsonFormat("Error", "Wrong " + COMMAND_KEY + " used"), clientInfo);								
@@ -793,6 +796,7 @@ public class GatewayServer implements Runnable{
 			String[] values = rawData.split(RAWDATA_DELIMETER);
 			String sqlCommand = "INSERT INTO " + RAWDATA_TABLE_NAME +" VALUES (";
 			int length = values.length;
+			sqlCommand += "null, ";
 			for (int i = 0; i < length; ++i) {
 				if (i + 1 == length) {
 					sqlCommand +=  values[i] + ")"; 
