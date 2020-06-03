@@ -1,6 +1,5 @@
 package il.co.ilrd.raspi_clients.fridge.http;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
@@ -12,7 +11,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 
 import il.co.ilrd.http_message.HttpParser;
-
+import il.co.ilrd.raspi_clients.*;
 
 public class RecieveMessage implements Runnable {
 	private final static String COMMAND_TYPE = "Succsess";
@@ -22,28 +21,33 @@ public class RecieveMessage implements Runnable {
 	
 	@Override
 	public void run() {
-
+		try { 
+		InputStream inputStream = FridgeIOT.socket.getInputStream();
+ 
 		while(FridgeIOT.isRunning) {
 			byte[] byteArr = new byte[FridgeIOT.BUFFER_SIZE];
-			try (
-					InputStream inputStream = FridgeIOT.socket.getInputStream();
-				){
 				inputStream.read(byteArr);
 				String responseMessage = new String(byteArr);
-				System.out.println("RESPONSE: " + responseMessage);
 				HttpParser httpPareser = new HttpParser(responseMessage);
-				String key = getGey(ByteBuffer.wrap(httpPareser.getBody().getBody().getBytes()));
-				if (key != null) {
-					FridgeIOT.map.remove(key);
+				String id = getMessageID(ByteBuffer.wrap(httpPareser.getBody().getBody().getBytes()));
+				MessagingUtils.TurnLedLong();
+				if (id != null) {
+					FridgeIOT.semQueueMsgs.tryAcquire();
+					IOTUpdateMessage currentMsg = FridgeIOT.idToIOTMap.get(id);
+					FridgeIOT.RTT = MessagingUtils.calculateRTT(FridgeIOT.RTT, System.currentTimeMillis() - currentMsg.getTimeSent());
+					FridgeIOT.queue.remove(FridgeIOT.idToIOTMap.get(id));
+					FridgeIOT.idToIOTMap.remove(id);
+
 				}
-			} catch (IOException e1) {
-				System.err.println("Connection Closed!");
-				FridgeIOT.close();
 			}
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			System.err.println("Connection Closed!");
+			FridgeIOT.close();
 		}
 	}
 
-	private String getGey(ByteBuffer buffer) throws UnsupportedEncodingException {
+	private String getMessageID(ByteBuffer buffer) throws UnsupportedEncodingException {
 		reader = new JsonReader(new StringReader(new String(buffer.array(), "UTF-8")));
 		reader.setLenient(true);
 		JsonObject j = gson.fromJson(reader, JsonObject.class);

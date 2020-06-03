@@ -1,5 +1,6 @@
 package il.co.ilrd.raspi_clients;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -16,7 +17,7 @@ public class MessagingUtils {
 	public static final String TIME_DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
 	public static final String DELIMETER = "|";
 	public static final String DATA = "Data";
-	
+	private static final double ALPHA_RTT = 0.2;
 	
 	public static String prepareMessage(String currentMessage, String dbName, int serialNumber) {
 		JSONObject innerJsonObject = new JSONObject();
@@ -45,6 +46,37 @@ public class MessagingUtils {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static void TurnLed() {
+		try {
+			Runtime.getRuntime().exec("python led.py");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void TurnLedLong() {
+		try {
+			Runtime.getRuntime().exec("python led_long.py");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static void TurnLedFlicker() {
+		try {
+			Runtime.getRuntime().exec("python led_flicker.py");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public static long calculateRTT(long globalRTT, long localRTT) {
+		return (long) ((1-ALPHA_RTT) * globalRTT + (ALPHA_RTT * localRTT));
 	}
 	
 	private static String getCurrentTime() {

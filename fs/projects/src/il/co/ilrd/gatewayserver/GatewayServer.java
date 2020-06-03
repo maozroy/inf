@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -67,7 +68,7 @@ public class GatewayServer implements Runnable{
 	private static final int DEFAULT_NUM_THREADS = Runtime.getRuntime().availableProcessors();
 	private static final String DB_URL = "jdbc:mysql://127.0.0.1/";
 	private static final String DB_USER = "root";
-	private static final String DB_PASS = "root";
+	private static final String DB_PASS = "MaozRoy1990";
 	private static final String DB_NAME = "dbName";
 	private final String dirPath;
 	private static final String FACTORY_COMMAND_MODIFIER = "FactoryCommandModifier";
@@ -408,14 +409,13 @@ public class GatewayServer implements Runnable{
 		
 		@Override
 		public void handleRequestMessage(SelectionKey key, ServerConnection connection) {
-			TcpConnection tcpConnection = (TcpConnection) connection;
 			ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
 			try {
 				SocketChannel client = (SocketChannel) key.channel();
 
 				if (!(-1 == client.read(buffer))) {
 					HttpParser parser = new HttpParser(bufferToString(buffer));
-					messageHandler.handleMessage(stringToBuffer(parser.getBody().getBody()), tcpConnection.socketInfo.get(client));
+					messageHandler.handleMessage(stringToBuffer(parser.getBody().getBody()), clientMap.get(client));
 				}else {
 					client.close();
 				}
@@ -496,6 +496,7 @@ public class GatewayServer implements Runnable{
 		@Override
 		public void sendResponse(ByteBuffer message, ClientInfo info) {
 			try {
+				System.out.println("MSG: " + bufferToString(message));
 				info.exchangeMsg.getResponseHeaders().add(CONTENT_TYPE, CONTENT_JSON);
 				info.exchangeMsg.sendResponseHeaders(HttpStatusCode.OK.getCode(), bufferToString(message).length());
 				OutputStream outStream = info.exchangeMsg.getResponseBody();
@@ -608,6 +609,7 @@ public class GatewayServer implements Runnable{
 					info.getTcpSocket().write(message);
 					message.clear();
 				} catch (IOException e) {
+					System.err.println("writing failed");
 					e.printStackTrace();
 				}
 		}
@@ -683,7 +685,6 @@ public class GatewayServer implements Runnable{
 	}
 	
 	private class GatewayMessageHandler{
-		HashMap<String, String> json = new HashMap<>();
 		JsonReader reader;
 		
 		public void handleMessage(ByteBuffer buffer, ClientInfo clientInfo) {
@@ -697,6 +698,7 @@ public class GatewayServer implements Runnable{
 		}
 		
 		private JsonObject bufferToJson(ByteBuffer buffer) throws JsonSyntaxException{
+			System.out.println("buffer to json: " + bufferToString(buffer));
 			reader = new JsonReader(new StringReader(bufferToString(buffer)));
 			reader.setLenient(true);
 			JsonObject j = gson.fromJson(reader, JsonObject.class);
@@ -705,9 +707,10 @@ public class GatewayServer implements Runnable{
 	}
 	
 	private Runnable convertToRunnable(JsonObject param, ClientInfo clientInfo) {
-		String key = param.get(COMMAND_KEY).getAsString();
 
+		String key = param.get(COMMAND_KEY).getAsString();
 		JsonObject innerMessage = gson.fromJson(param.get(DATA), JsonObject.class);
+		
 		return new Runnable() {
 			@Override
 			public void run() {
@@ -716,6 +719,12 @@ public class GatewayServer implements Runnable{
 						try {
 							if (cmdFactory.map.containsKey(key)) {
 									response = cmdFactory.create(key).run(innerMessage, getDatabase(innerMessage.get(DB_NAME).getAsString()));
+									try {
+										Thread.sleep(3000);
+									} catch (InterruptedException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
 									sendResponseFromTask(response, clientInfo);
 							}else {
 								sendStringResponse(getJsonFormat("Error", "Wrong " + COMMAND_KEY + " used"), clientInfo);								
@@ -755,6 +764,7 @@ public class GatewayServer implements Runnable{
 	}
 	
 	private void sendStringResponse(String response, ClientInfo clientInfo) {
+		System.out.println(response);
 		clientInfo.connection.sendResponse(stringToBuffer(response), clientInfo);		
 	}	
 	

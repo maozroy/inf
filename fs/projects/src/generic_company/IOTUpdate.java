@@ -2,6 +2,7 @@ package generic_company;
 
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.function.Function;
 
 import com.google.gson.Gson;
@@ -36,12 +37,11 @@ public class IOTUpdate implements FactoryCommandModifier {
 		public String run(Object data, DatabaseManagementInterface databaseManagement) {
 			@SuppressWarnings("unchecked")
 			HashMap<String, String> json = gson.fromJson(data.toString(), HashMap.class);
+
 			try {
 				String rawData = json.get(RAW_DATA);
 				String[] splittedData = rawData.split("\\|");
-				System.out.println(splittedData[1]);
 				databaseManagement.createIOTEvent(json.get(RAW_DATA));
-				System.out.println("INSIDE TASK: " + json.get(RAW_DATA));
 				return getJsonFormat("Succsess", splittedData[1]);
 			} catch (SQLException e) {
 				return getJsonFormat("error", e.getMessage());
